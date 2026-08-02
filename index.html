@@ -450,17 +450,21 @@
         <div class="popup-sub">Emoción detectada</div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human/dist/human.js"></script>
     <script>
+        const MODELS_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+
+        // Human se usa SOLO para emociones (mas preciso ahi); face-api.js se usa para edad/genero
         const humanConfig = {
             modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human/models/',
             filter: { enabled: true, equalization: true },
             face: {
                 enabled: true,
                 detector: { rotation: true, maxDetected: 1 },
-                mesh: { enabled: true },
+                mesh: { enabled: false },
                 iris: { enabled: false },
-                description: { enabled: true },   // da edad y genero
+                description: { enabled: false },  // edad/genero los da face-api.js, no Human
                 emotion: { enabled: true },
                 antispoof: { enabled: false },
                 liveness: { enabled: false },
@@ -577,10 +581,14 @@
 
         async function cargarModelos() {
             try {
-                await human.load();
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
+                    faceapi.nets.ageGenderNet.loadFromUri(MODELS_URL),
+                    human.load(),
+                ]);
                 await human.warmup();
                 modelos_cargados = true;
-                console.log('Modelos cargados (Human)');
+                console.log('Modelos cargados (face-api + Human)');
             } catch(e) {
                 console.error('Error cargando modelos:', e);
             }
@@ -627,26 +635,38 @@
 
                 if (enBloqueo) return;
 
-                const resultado = await human.detect(vid);
-                const detecciones = resultado.face;
+                // Edad/genero -> face-api.js | Emociones -> Human
+                const [deteccionesFace, resultadoHuman] = await Promise.all([
+                    faceapi
+                        .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
+                        .withAgeAndGender(),
+                    human.detect(vid)
+                ]);
 
-                if (!detecciones || detecciones.length === 0) {
+                const deteccionesHuman = resultadoHuman.face;
+
+                if ((!deteccionesFace || deteccionesFace.length === 0) && (!deteccionesHuman || deteccionesHuman.length === 0)) {
                     set('emocion',  'Sin rostro');
                     set('emocion2', 'Sin rostro');
                     return;
                 }
 
-                const d = detecciones[0];
-
-                // Human ya trae la edad bastante estable, igual la suavizamos
-                historialEdad.push(d.age);
-                if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
+                // ── Edad (face-api.js) ──
+                if (deteccionesFace && deteccionesFace.length > 0) {
+                    const dFace = deteccionesFace[0];
+                    historialEdad.push(dFace.age);
+                    if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
+                }
+                if (historialEdad.length === 0) return;
                 const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
                 const edadEstimada = Math.round(edadPromedio);
                 set('edad', edadEstimada + ' años');
                 set('edadDisplay', 'Edad: ' + edadEstimada);
 
-                // Human devuelve d.emotion como array [{emotion:'happy', score:0.83}, ...]
+                // ── Emociones (Human) ──
+                if (!deteccionesHuman || deteccionesHuman.length === 0) return;
+                const d = deteccionesHuman[0];
+
                 const expr = {};
                 (d.emotion || []).forEach(e => { expr[e.emotion] = e.score; });
 
