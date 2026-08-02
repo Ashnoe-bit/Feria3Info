@@ -598,7 +598,14 @@
 
         async function iniciarCamara() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width:  { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
                 vid.srcObject = stream;
                 vid.addEventListener('playing', () => {
                     if (modelos_cargados) iniciarAnalisis();
@@ -627,7 +634,7 @@
         let popupTimer       = null;
         let enBloqueo        = false;
         let historialEdad    = [];
-        const VENTANA_EDAD   = 10;
+        const VENTANA_EDAD   = 20;
 
         async function iniciarAnalisis() {
             setInterval(async () => {
@@ -638,7 +645,7 @@
                 // Edad/genero -> face-api.js | Emociones -> Human
                 const [deteccionesFace, resultadoHuman] = await Promise.all([
                     faceapi
-                        .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
+                        .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.3 }))
                         .withAgeAndGender(),
                     human.detect(vid)
                 ]);
@@ -654,12 +661,20 @@
                 // ── Edad (face-api.js) ──
                 if (deteccionesFace && deteccionesFace.length > 0) {
                     const dFace = deteccionesFace[0];
-                    historialEdad.push(dFace.age);
-                    if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
+                    // Ignorar rostros muy pequeños en el cuadro: dan lecturas de edad poco confiables
+                    const areaRostro = dFace.detection.box.width * dFace.detection.box.height;
+                    if (areaRostro > 6000) {
+                        historialEdad.push(dFace.age);
+                        if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
+                    }
                 }
                 if (historialEdad.length === 0) return;
-                const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
-                const edadEstimada = Math.round(edadPromedio);
+                // Mediana en vez de promedio: ignora picos raros puntuales
+                const edadOrdenada = [...historialEdad].sort((a, b) => a - b);
+                const mid = Math.floor(edadOrdenada.length / 2);
+                const edadEstimada = edadOrdenada.length % 2 !== 0
+                    ? Math.round(edadOrdenada[mid])
+                    : Math.round((edadOrdenada[mid - 1] + edadOrdenada[mid]) / 2);
                 set('edad', edadEstimada + ' años');
                 set('edadDisplay', 'Edad: ' + edadEstimada);
 
