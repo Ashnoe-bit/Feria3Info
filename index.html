@@ -236,17 +236,17 @@
         /* ══════════════════════════════════════════════
            RESPONSIVE: celulares
            ══════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .cam-outer { width: 300px; height: 220px; }
+            #videoStream { width: 280px; height: 200px; border-radius: 16px; }
+            .char-zone img { height: 190px; }
+            .gen-btn { padding: 8px 16px; font-size: .8rem; }
+        }
+
         @media (max-width: 600px) {
             body { padding: 10px 8px 26px; }
             .main-title { letter-spacing: 3px; }
             .caps-row, .ssym { display: none; }         /* adornos que ya no caben con poco ancho */
-
-            .cam-outer, .cr1 { width: 280px; height: 280px; }
-            .cr2 { width: 300px; height: 300px; }
-            .cr3 { width: 320px; height: 320px; }
-            #videoStream { width: 254px; height: 254px; }
-            
-            .char-zone img { height: 190px; }
 
             .sidebar { flex-direction: column; }
             .sidebar .scard { flex: 1 1 100%; }
@@ -263,18 +263,6 @@
 
             .popup-genero { width: 88vw; min-width: 0; padding: 26px 20px; }
             .popup-genero > div { flex-wrap: wrap; }
-        }
-
-        /* ══════════════════════════════════════════════
-           RESPONSIVE: celulares muy angostos
-           ══════════════════════════════════════════════ */
-        @media (max-width: 768px) {
-            .cam-outer, .cr1 { width: 160px; height: 160px; }
-            .cr2 { width: 174px; height: 174px; }
-            .cr3 { width: 188px; height: 188px; }
-            #videoStream { width: 144px; height: 144px; }
-            .char-zone img { height: 160px; }
-            .gen-btn { padding: 8px 16px; font-size: .8rem; }
         }
     </style>
 </head>
@@ -549,13 +537,11 @@
             const e = document.getElementById(id);
             if (!e) return;
             e.textContent = v;
-            // quitar el estilo tenue de "analizando" cuando llega un valor real
             e.style.opacity   = '';
             e.style.fontStyle = '';
             e.style.fontSize  = '';
         }
 
-        // ── Popup género ──
         document.getElementById('btn-hombre').addEventListener('click', () => {
             generoUsuario = 'Hombre';
             document.getElementById('popup-genero').classList.remove('show');
@@ -569,7 +555,6 @@
             iniciarCamara();
         });
 
-        // ── Cargar modelos ──
         async function cargarModelos() {
             try {
                 await Promise.all([
@@ -584,7 +569,6 @@
             }
         }
 
-        // ── Iniciar cámara ──
         const vid = document.getElementById('videoStream');
 
         async function iniciarCamara() {
@@ -604,7 +588,6 @@
             }
         }
 
-        // ── Mapeo de emociones face-api → español con género ──
         const mapaEmociones = {
             happy:     () => 'feliz',
             sad:       () => 'triste',
@@ -615,9 +598,9 @@
             neutral:   () => 'neutral',
         };
 
-        let emocionFijada    = null;   // emoción que se está mostrando en pantalla
+        let emocionFijada    = null;
         let popupTimer       = null;
-        let enBloqueo        = false;  // true = no tocar nada hasta que pasen 30s
+        let enBloqueo        = false;
         let historialEdad    = [];
         const VENTANA_EDAD   = 10;
 
@@ -625,7 +608,6 @@
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
 
-                // Si estamos en bloqueo, no analizar nada
                 if (enBloqueo) return;
 
                 const detecciones = await faceapi
@@ -641,7 +623,6 @@
 
                 const d = detecciones[0];
 
-                // ── Edad suavizada + corrección de sesgo ──
                 historialEdad.push(d.age);
                 if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
                 const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
@@ -649,7 +630,6 @@
                 set('edad', edadEstimada + ' años');
                 set('edadDisplay', 'Edad: ' + edadEstimada);
 
-                // ── Detectar emoción con sistema de puntaje ponderado ──
                 const expr = d.expressions;
 
                 const angry     = expr.angry     || 0;
@@ -660,22 +640,15 @@
                 const surprised = expr.surprised  || 0;
                 const neutral   = expr.neutral    || 0;
 
-                // Ignorar si no hay ninguna señal mínima de expresión
                 const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
                 if (maxExpr < 0.10) return;
 
-                // Sueño: neutral muy alto con prácticamente sin expresión (umbral estricto)
                 const esSuenio = neutral > 0.85 && maxExpr < 0.08;
 
-                // Estrés: miedo y enojo presentes al mismo tiempo
                 const esEstres = fearful >= 0.12 && angry >= 0.10 && (fearful + angry) > 0.28;
 
-                // Puntaje ponderado para enojo:
-                // angry es dominante O disgusted es muy alto (cara de asco ≈ enojo)
                 const puntajeEnojo = angry * 1.5 + disgusted * 0.8;
 
-                // Puntaje ponderado para tristeza:
-                // sad es dominante O fearful moderado sin angry (miedo tranquilo ≈ tristeza)
                 const puntajeTristeza = sad * 1.5 + fearful * 0.5;
 
                 let emocion;
@@ -699,7 +672,6 @@
                     emocion = 'neutral';
                 }
 
-                // ── Fijar emoción en pantalla y bloquear 30 segundos ──
                 emocionFijada = emocion;
                 enBloqueo     = true;
 
@@ -708,7 +680,6 @@
                 set('emocion2',      display);
                 set('soon-titulo',   display);
 
-                // Recomendaciones según la emoción detectada
                 const recs = recomendaciones[emocion] || recomendaciones['neutral'];
                 document.getElementById('recomendaciones').innerHTML =
                     recs.map(r => `<li>${r}</li>`).join('');
@@ -718,7 +689,6 @@
             }, 1200);
         }
 
-        // ── Popup ──
         function mostrarPopupEmocion(emocion, edad) {
             const iconos = {
                 feliz:'😊', triste:'😢', enojado:'😠', enojada:'😠',
@@ -727,7 +697,6 @@
                 neutral:'😐', somnoliento:'😴', somnolienta:'😴'
             };
             const popup = document.getElementById('popup-persona');
-            // La emoción va como título principal
             const display = emocion.charAt(0).toUpperCase() + emocion.slice(1);
             document.getElementById('popup-icon').textContent      = iconos[emocion] || '😐';
             document.getElementById('popup-tipo').textContent      = display;
@@ -743,9 +712,8 @@
             }, 30000);
         }
 
-        // ── Fallback Flask — NO sobreescribe si hay bloqueo activo ──
         function intentarFlask() {
-            if (enBloqueo) return;  // respetar el bloqueo de 30s
+            if (enBloqueo) return;
             fetch('/resultado', { signal: AbortSignal.timeout(800) })
                 .then(r => r.json())
                 .then(d => {
@@ -762,7 +730,6 @@
                 }).catch(() => {});
         }
 
-        // ── Inicio ──
         cargarModelos();
         mostrarPopupGenero();
         setInterval(intentarFlask, 2000);
