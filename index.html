@@ -453,7 +453,10 @@
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human/dist/human.js"></script>
     <script>
-        const MODELS_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+        // raw.githubusercontent.com NO es un CDN: no tiene cache/distribucion global y
+        // es muy lento (a veces cuelga minutos) sirviendo los archivos binarios de los
+        // modelos. jsdelivr sirve el mismo repo de GitHub pero como CDN real -> mucho mas rapido.
+        const MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
 
         // Human se usa SOLO para emociones (mas preciso ahi); face-api.js se usa para edad/genero
         const humanConfig = {
@@ -580,6 +583,7 @@
         });
 
         async function cargarModelos() {
+            const t0 = performance.now();
             try {
                 // Forzar backend WebGL (GPU) en vez de CPU/WASM: acelera notablemente
                 // la inferencia de face-api.js si el navegador no lo eligió por defecto.
@@ -587,14 +591,24 @@
                     await faceapi.tf.setBackend('webgl');
                     await faceapi.tf.ready();
                 }
+                console.log('[modelos] iniciando descarga de face-api + Human...');
+                const tFace0 = performance.now();
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
                     faceapi.nets.ageGenderNet.loadFromUri(MODELS_URL),
-                    human.load(),
                 ]);
+                console.log(`[modelos] face-api.js listo en ${((performance.now() - tFace0) / 1000).toFixed(1)}s`);
+
+                const tHuman0 = performance.now();
+                await human.load();
+                console.log(`[modelos] Human.js listo en ${((performance.now() - tHuman0) / 1000).toFixed(1)}s`);
+
+                const tWarm0 = performance.now();
                 await human.warmup();
+                console.log(`[modelos] warmup listo en ${((performance.now() - tWarm0) / 1000).toFixed(1)}s`);
+
                 modelos_cargados = true;
-                console.log('Modelos cargados (face-api + Human)');
+                console.log(`[modelos] TOTAL: ${((performance.now() - t0) / 1000).toFixed(1)}s`);
             } catch(e) {
                 console.error('Error cargando modelos:', e);
             }
@@ -614,12 +628,19 @@
                 });
                 vid.srcObject = stream;
                 vid.addEventListener('playing', () => {
-                    if (modelos_cargados) iniciarAnalisis();
-                    else {
-                        const esperar = setInterval(() => {
-                            if (modelos_cargados) { clearInterval(esperar); iniciarAnalisis(); }
-                        }, 500);
-                    }
+                    if (modelos_cargados) { iniciarAnalisis(); return; }
+
+                    const statusEl = document.getElementById('cam-status');
+                    statusEl.textContent = 'Cargando modelos de IA (puede tardar unos segundos la primera vez)...';
+                    statusEl.classList.add('active');
+
+                    const esperar = setInterval(() => {
+                        if (modelos_cargados) {
+                            clearInterval(esperar);
+                            statusEl.classList.remove('active');
+                            iniciarAnalisis();
+                        }
+                    }, 500);
                 });
             } catch(e) {
                 document.getElementById('cam-status').classList.add('active');
