@@ -600,8 +600,8 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width:  { ideal: 1280 },
-                        height: { ideal: 720 },
+                        width:  { ideal: 960 },
+                        height: { ideal: 540 },
                         facingMode: 'user'
                     },
                     audio: false
@@ -636,21 +636,29 @@
         let historialEdad    = [];
         const VENTANA_EDAD   = 20;
 
+        let ultimoResultadoHuman = null;
+        let cicloAnalisis = 0;
+
         async function iniciarAnalisis() {
-            setInterval(async () => {
-                if (!modelos_cargados || vid.paused || vid.ended) return;
+            async function ciclo() {
+                try {
+                    if (!modelos_cargados || vid.paused || vid.ended) { return; }
 
-                if (enBloqueo) return;
+                    if (enBloqueo) { return; }
 
-                // Edad/genero -> face-api.js | Emociones -> Human
-                const [deteccionesFace, resultadoHuman] = await Promise.all([
-                    faceapi
-                        .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.3 }))
-                        .withAgeAndGender(),
-                    human.detect(vid)
-                ]);
+                    cicloAnalisis++;
+                    // Human (emociones) se ejecuta cada 2 ciclos; face-api (edad) cada ciclo -> mas velocidad
+                    const correHuman = cicloAnalisis % 2 === 0;
 
-                const deteccionesHuman = resultadoHuman.face;
+                    const [deteccionesFace, resultadoHuman] = await Promise.all([
+                        faceapi
+                            .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 }))
+                            .withAgeAndGender(),
+                        correHuman ? human.detect(vid) : Promise.resolve(null)
+                    ]);
+
+                    if (resultadoHuman) ultimoResultadoHuman = resultadoHuman;
+                    const deteccionesHuman = ultimoResultadoHuman ? ultimoResultadoHuman.face : null;
 
                 if ((!deteccionesFace || deteccionesFace.length === 0) && (!deteccionesHuman || deteccionesHuman.length === 0)) {
                     set('emocion',  'Sin rostro');
@@ -739,7 +747,14 @@
 
                 mostrarPopupEmocion(emocion, edadEstimada);
 
-            }, 1200);
+                } catch (e) {
+                    console.error('Error en analisis:', e);
+                } finally {
+                    setTimeout(ciclo, 700);
+                }
+            }
+
+            ciclo();
         }
 
         function mostrarPopupEmocion(emocion, edad) {
