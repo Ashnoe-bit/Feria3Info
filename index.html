@@ -581,6 +581,12 @@
 
         async function cargarModelos() {
             try {
+                // Forzar backend WebGL (GPU) en vez de CPU/WASM: acelera notablemente
+                // la inferencia de face-api.js si el navegador no lo eligió por defecto.
+                if (faceapi.tf && faceapi.tf.setBackend) {
+                    await faceapi.tf.setBackend('webgl');
+                    await faceapi.tf.ready();
+                }
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
                     faceapi.nets.ageGenderNet.loadFromUri(MODELS_URL),
@@ -634,7 +640,16 @@
         let popupTimer       = null;
         let enBloqueo        = false;
         let historialEdad    = [];
-        const VENTANA_EDAD   = 20;
+        const VENTANA_EDAD   = 24;   // ventana un poco mayor: ya filtramos outliers antes de entrar
+
+        // ── Ajustes de precisión de edad ──
+        const AREA_MINIMA_ROSTRO = 12000;   // ~110x110px. Rostros mas chicos dan lecturas pobres de edad
+        const SCORE_MINIMO_DETECCION = 0.5; // confianza minima del detector para aceptar la lectura
+        const MAX_DESVIACION_EDAD = 10;      // años de diferencia maxima vs la mediana actual antes de descartar
+        const RACHA_MAX_DESVIACION = 4;      // si se desvia N veces seguidas, asumimos persona nueva y reseteamos
+        const CALIBRACION_EDAD = 0;          // ajusta este offset (+/-) si notas un sesgo sistematico
+
+        let rachaDesviacion = 0;
 
         let ultimoResultadoHuman = null;
         let cicloAnalisis = 0;
@@ -647,12 +662,15 @@
                     if (enBloqueo) { return; }
 
                     cicloAnalisis++;
+                    const inicioCiclo = performance.now();
                     // Human (emociones) se ejecuta cada 2 ciclos; face-api (edad) cada ciclo -> mas velocidad
                     const correHuman = cicloAnalisis % 2 === 0;
 
-                    const [deteccionesFace, resultadoHuman] = await Promise.all([
+                    const [dFace, resultadoHuman] = await Promise.all([
+                        // detectSingleFace: mas rapido que detectAllFaces cuando solo usamos un rostro
+                        // (evita el paso de comparacion/NMS entre multiples candidatos).
                         faceapi
-                            .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 }))
+                            .detectSingleFace(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.4 }))
                             .withAgeAndGender(),
                         correHuman ? human.detect(vid) : Promise.resolve(null)
                     ]);
@@ -660,19 +678,47 @@
                     if (resultadoHuman) ultimoResultadoHuman = resultadoHuman;
                     const deteccionesHuman = ultimoResultadoHuman ? ultimoResultadoHuman.face : null;
 
-                if ((!deteccionesFace || deteccionesFace.length === 0) && (!deteccionesHuman || deteccionesHuman.length === 0)) {
+                if (!dFace && (!deteccionesHuman || deteccionesHuman.length === 0)) {
                     set('emocion',  'Sin rostro');
                     set('emocion2', 'Sin rostro');
                     return;
                 }
 
                 // ── Edad (face-api.js) ──
-                if (deteccionesFace && deteccionesFace.length > 0) {
-                    const dFace = deteccionesFace[0];
-                    // Ignorar rostros muy pequeños en el cuadro: dan lecturas de edad poco confiables
+                if (dFace) {
                     const areaRostro = dFace.detection.box.width * dFace.detection.box.height;
-                    if (areaRostro > 6000) {
-                        historialEdad.push(dFace.age);
+                    const scoreRostro = dFace.detection.score;
+                    // Solo aceptar lecturas de rostros suficientemente grandes y con buena confianza:
+                    // son las condiciones que mas afectan la precision del modelo de edad.
+                    if (areaRostro > AREA_MINIMA_ROSTRO && scoreRostro >= SCORE_MINIMO_DETECCION) {
+                        const edadCruda = dFace.age;
+
+                        if (historialEdad.length < 5) {
+                            // Aun no hay suficiente historial para juzgar outliers: aceptar directo
+                            historialEdad.push(edadCruda);
+                            rachaDesviacion = 0;
+                        } else {
+                            const ordenadaPrev = [...historialEdad].sort((a, b) => a - b);
+                            const midPrev = Math.floor(ordenadaPrev.length / 2);
+                            const medianaPrev = ordenadaPrev.length % 2 !== 0
+                                ? ordenadaPrev[midPrev]
+                                : (ordenadaPrev[midPrev - 1] + ordenadaPrev[midPrev]) / 2;
+
+                            if (Math.abs(edadCruda - medianaPrev) <= MAX_DESVIACION_EDAD) {
+                                // Lectura consistente con el historial reciente: aceptar
+                                historialEdad.push(edadCruda);
+                                rachaDesviacion = 0;
+                            } else {
+                                // Lectura atipica (posible parpadeo, movimiento, mala luz).
+                                // Si se repite varias veces seguidas, probablemente cambio la
+                                // persona frente a la camara -> reseteamos el historial.
+                                rachaDesviacion++;
+                                if (rachaDesviacion >= RACHA_MAX_DESVIACION) {
+                                    historialEdad = [edadCruda];
+                                    rachaDesviacion = 0;
+                                }
+                            }
+                        }
                         if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
                     }
                 }
@@ -680,9 +726,9 @@
                 // Mediana en vez de promedio: ignora picos raros puntuales
                 const edadOrdenada = [...historialEdad].sort((a, b) => a - b);
                 const mid = Math.floor(edadOrdenada.length / 2);
-                const edadEstimada = edadOrdenada.length % 2 !== 0
-                    ? Math.round(edadOrdenada[mid])
-                    : Math.round((edadOrdenada[mid - 1] + edadOrdenada[mid]) / 2);
+                const edadEstimada = Math.round((edadOrdenada.length % 2 !== 0
+                    ? edadOrdenada[mid]
+                    : (edadOrdenada[mid - 1] + edadOrdenada[mid]) / 2) + CALIBRACION_EDAD);
                 set('edad', edadEstimada + ' años');
                 set('edadDisplay', 'Edad: ' + edadEstimada);
 
@@ -750,7 +796,12 @@
                 } catch (e) {
                     console.error('Error en analisis:', e);
                 } finally {
-                    setTimeout(ciclo, 700);
+                    // Delay adaptativo: si el analisis fue rapido, esperamos menos.
+                    // Antes era un valor fijo de 700ms sin importar cuanto tardara el modelo.
+                    const transcurrido = performance.now() - inicioCiclo;
+                    const DELAY_OBJETIVO = 350; // ciclo total deseado (ms)
+                    const espera = Math.max(60, DELAY_OBJETIVO - transcurrido);
+                    setTimeout(ciclo, espera);
                 }
             }
 
