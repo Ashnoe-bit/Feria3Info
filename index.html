@@ -237,8 +237,10 @@
            RESPONSIVE: celulares
            ══════════════════════════════════════════════ */
         @media (max-width: 768px) {
-            .cam-outer { width: 300px; height: 220px; }
-            #videoStream { width: 280px; height: 200px; border-radius: 16px; }
+            .cam-outer, .cr1 { width: 280px; height: 280px; }
+            .cr2 { width: 300px; height: 300px; }
+            .cr3 { width: 320px; height: 320px; }
+            #videoStream { width: 254px; height: 254px; }
             .char-zone img { height: 190px; }
             .gen-btn { padding: 8px 16px; font-size: .8rem; }
         }
@@ -448,9 +450,27 @@
         <div class="popup-sub">Emoción detectada</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human/dist/human.js"></script>
     <script>
-        const MODELS_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+        const humanConfig = {
+            modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human/models/',
+            filter: { enabled: true, equalization: true },
+            face: {
+                enabled: true,
+                detector: { rotation: true, maxDetected: 1 },
+                mesh: { enabled: true },
+                iris: { enabled: false },
+                description: { enabled: true },   // da edad y genero
+                emotion: { enabled: true },
+                antispoof: { enabled: false },
+                liveness: { enabled: false },
+            },
+            body: { enabled: false },
+            hand: { enabled: false },
+            object: { enabled: false },
+            gesture: { enabled: false },
+        };
+        const human = new Human.Human(humanConfig);
 
         const recomendaciones = {
             'feliz':       [
@@ -557,13 +577,10 @@
 
         async function cargarModelos() {
             try {
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
-                    faceapi.nets.faceExpressionNet.loadFromUri(MODELS_URL),
-                    faceapi.nets.ageGenderNet.loadFromUri(MODELS_URL),
-                ]);
+                await human.load();
+                await human.warmup();
                 modelos_cargados = true;
-                console.log('Modelos cargados');
+                console.log('Modelos cargados (Human)');
             } catch(e) {
                 console.error('Error cargando modelos:', e);
             }
@@ -610,10 +627,8 @@
 
                 if (enBloqueo) return;
 
-                const detecciones = await faceapi
-                    .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
-                    .withFaceExpressions()
-                    .withAgeAndGender();
+                const resultado = await human.detect(vid);
+                const detecciones = resultado.face;
 
                 if (!detecciones || detecciones.length === 0) {
                     set('emocion',  'Sin rostro');
@@ -623,6 +638,7 @@
 
                 const d = detecciones[0];
 
+                // Human ya trae la edad bastante estable, igual la suavizamos
                 historialEdad.push(d.age);
                 if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
                 const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
@@ -630,14 +646,16 @@
                 set('edad', edadEstimada + ' años');
                 set('edadDisplay', 'Edad: ' + edadEstimada);
 
-                const expr = d.expressions;
+                // Human devuelve d.emotion como array [{emotion:'happy', score:0.83}, ...]
+                const expr = {};
+                (d.emotion || []).forEach(e => { expr[e.emotion] = e.score; });
 
                 const angry     = expr.angry     || 0;
                 const sad       = expr.sad        || 0;
-                const fearful   = expr.fearful    || 0;
+                const fearful   = expr.fear       || 0;
                 const happy     = expr.happy      || 0;
-                const disgusted = expr.disgusted  || 0;
-                const surprised = expr.surprised  || 0;
+                const disgusted = expr.disgust    || 0;
+                const surprised = expr.surprise   || 0;
                 const neutral   = expr.neutral    || 0;
 
                 const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
