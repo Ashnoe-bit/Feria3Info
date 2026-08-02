@@ -611,7 +611,7 @@
                 if (enBloqueo) return;
 
                 const detecciones = await faceapi
-                    .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.4 }))
+                    .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
                     .withFaceExpressions()
                     .withAgeAndGender();
 
