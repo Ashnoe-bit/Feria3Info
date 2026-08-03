@@ -585,12 +585,6 @@
         async function cargarModelos() {
             const t0 = performance.now();
             try {
-                // Forzar backend WebGL (GPU) en vez de CPU/WASM: acelera notablemente
-                // la inferencia de face-api.js si el navegador no lo eligió por defecto.
-                if (faceapi.tf && faceapi.tf.setBackend) {
-                    await faceapi.tf.setBackend('webgl');
-                    await faceapi.tf.ready();
-                }
                 console.log('[modelos] iniciando descarga de face-api + Human...');
                 const tFace0 = performance.now();
                 await Promise.all([
@@ -852,7 +846,12 @@
             }, 30000);
         }
 
+        // NOTA: intentarFlask() se desactivó porque este proyecto corre 100% en el navegador
+        // (face-api.js + Human.js), sin backend Flask. En GitHub Pages no hay servidor
+        // detrás, así que esa función solo generaba errores 404 en la consola cada 2s.
         function intentarFlask() {
+            return; // deshabilitado
+            /* eslint-disable no-unreachable */
             if (enBloqueo) return;
             fetch('/resultado', { signal: AbortSignal.timeout(800) })
                 .then(r => r.json())
