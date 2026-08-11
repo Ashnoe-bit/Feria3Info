@@ -2,18 +2,20 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <title>Analizador de Emociones</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap%22 rel="stylesheet">
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
- 
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html { height:100%; }
+
         body {
             font-family:'Raleway',sans-serif;
-            min-height:100vh; width:100vw;
+            min-height:100vh; min-height:100dvh; width:100vw;
             display:flex; flex-direction:column;
             align-items:center; justify-content:center;
-            padding:14px 20px; overflow:hidden;
+            padding:14px 20px; overflow-x:hidden;
             position:relative;
             background-color:#1e0008;
             background-image:
@@ -25,21 +27,21 @@
                 repeating-linear-gradient( 45deg,rgba(185,0,40,.05) 0,rgba(185,0,40,.05) 1px,transparent 1px,transparent 24px),
                 repeating-linear-gradient(-45deg,rgba(185,0,40,.05) 0,rgba(185,0,40,.05) 1px,transparent 1px,transparent 24px);
         }
- 
+
         .kanji-col { position:fixed; top:0; bottom:0; writing-mode:vertical-rl; font-size:1.3rem; color:rgba(165,0,35,.12); letter-spacing:14px; pointer-events:none; z-index:0; display:flex; align-items:center; padding:20px 0; }
         .kanji-col.L { left:20px; } .kanji-col.R { right:20px; transform:rotate(180deg); }
         .bgf { position:fixed; pointer-events:none; z-index:0; color:rgba(215,45,75,.18); font-size:2.2rem; filter:blur(.3px); }
         .petal { position:fixed; pointer-events:none; z-index:0; color:rgba(255,110,140,.22); animation:petalFall linear infinite; }
         @keyframes petalFall { 0%{transform:translateY(-30px) rotate(0deg);opacity:0;} 8%{opacity:1;} 92%{opacity:.3;} 100%{transform:translateY(101vh) rotate(540deg);opacity:0;} }
- 
+
         .page-wrap { position:relative; z-index:1; width:100%; max-width:1180px; display:flex; flex-direction:column; align-items:center; gap:9px; }
-        .main-title { font-family:'Cinzel',serif; font-size:clamp(1.5rem,3.2vw,2.8rem); font-weight:900; color:#fff; letter-spacing:7px; text-transform:uppercase; text-align:center; text-shadow:0 0 14px rgba(255,64,112,.95),0 0 38px rgba(255,64,112,.5),2px 2px 8px rgba(0,0,0,.9); }
- 
-        .hero-row { display:flex; gap:10px; width:100%; align-items:stretch; }
- 
+        .main-title { font-family:'Cinzel',serif; font-size:clamp(1.3rem,3.2vw,2.8rem); font-weight:900; color:#fff; letter-spacing:clamp(3px,1.2vw,7px); text-transform:uppercase; text-align:center; text-shadow:0 0 14px rgba(255,64,112,.95),0 0 38px rgba(255,64,112,.5),2px 2px 8px rgba(0,0,0,.9); }
+
+        .hero-row { display:flex; gap:10px; width:100%; align-items:stretch; flex-wrap:wrap; }
+
         @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false; }
         @keyframes bSpin { to{--a:360deg;} }
- 
+
         .neon-box { position:relative; border-radius:12px; background:rgba(22,0,6,.6); }
         .neon-box::before {
             content:''; position:absolute; inset:0; border-radius:inherit; padding:2.5px;
@@ -51,7 +53,7 @@
         }
         .neon-box::after { content:''; position:absolute; inset:0; border-radius:inherit; box-shadow:inset 0 0 40px rgba(140,0,28,.35),0 0 22px rgba(255,64,112,.14); pointer-events:none; z-index:0; }
         .nb-inner { position:relative; z-index:1; padding:12px 16px; height:100%; }
- 
+
         .panel-grid {
             position:absolute; inset:0; border-radius:12px; overflow:hidden; z-index:0; pointer-events:none;
             background-image:
@@ -59,53 +61,56 @@
                 linear-gradient(90deg, rgba(255,179,215,.28) 1px, transparent 1px);
             background-size:70px 70px;
         }
- 
+
         .topbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; position:relative; z-index:2; }
         .tl { flex:1; height:2px; background:linear-gradient(90deg,transparent,#ff4070,transparent); box-shadow:0 0 6px #ff4070; }
         .ts { color:#ff4070; font-size:.88rem; text-shadow:0 0 8px #ff4070; }
         .td { width:7px; height:7px; background:#ff4070; border-radius:50%; box-shadow:0 0 8px #ff4070; }
- 
+
         .caps-row { display:flex; gap:8px; justify-content:center; margin-bottom:8px; position:relative; z-index:2; }
         .cap { padding:3px 14px; border-radius:20px; background:rgba(20,0,5,.6); border:1px solid rgba(255,64,112,.45); font-size:.72rem; color:rgba(255,200,220,.85); letter-spacing:2px; box-shadow:0 0 8px rgba(255,64,112,.25); }
- 
+
         .ssym { position:absolute; display:flex; flex-direction:column; gap:9px; color:rgba(255,64,112,.38); font-size:.8rem; top:50%; transform:translateY(-50%); z-index:2; }
         .ssym.L{left:7px;} .ssym.R{right:7px;}
- 
-        .main-content { display:flex; position:relative; z-index:2; }
- 
-        .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 0 8px; }
-        .cam-outer { position:relative; width:260px; height:260px; }
- 
+
+        .main-content { display:flex; position:relative; z-index:2; flex-wrap:wrap; }
+
+        .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 0 8px; min-width:0; }
+
+        /* La cámara ahora es fluida y SIEMPRE cuadrada gracias a aspect-ratio.
+           clamp() la hace más grande en pantallas chicas (celular) y controlada en pantallas grandes. */
+        .cam-outer { position:relative; width:clamp(200px, 42vw, 260px); aspect-ratio:1/1; }
+
         .cam-ring { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%; }
-        .cr1 { width:260px; height:260px; border:2.5px solid rgba(255,64,112,.5); box-shadow:0 0 14px rgba(255,64,112,.3); animation:spinR 6s linear infinite; }
-        .cr2 { width:278px; height:278px; border:1.5px dashed rgba(255,64,112,.22); animation:spinL 10s linear infinite; }
-        .cr3 { width:296px; height:296px; border:1px solid rgba(255,64,112,.1); animation:spinR 16s linear infinite; }
+        .cr1 { width:100%; height:100%; border:2.5px solid rgba(255,64,112,.5); box-shadow:0 0 14px rgba(255,64,112,.3); animation:spinR 6s linear infinite; }
+        .cr2 { width:107%; height:107%; border:1.5px dashed rgba(255,64,112,.22); animation:spinL 10s linear infinite; }
+        .cr3 { width:114%; height:114%; border:1px solid rgba(255,64,112,.1); animation:spinR 16s linear infinite; }
         @keyframes spinR { to{transform:translate(-50%,-50%) rotate(360deg);}  }
         @keyframes spinL { to{transform:translate(-50%,-50%) rotate(-360deg);} }
- 
+
         .cam-svg { position:absolute; top:0; left:0; width:100%; height:100%; z-index:3; pointer-events:none; }
- 
+
         .corner-node { position:absolute; width:14px; height:14px; border-radius:50%; background:rgba(20,0,5,.8); border:2px solid #ff4070; box-shadow:0 0 10px #ff4070, inset 0 0 4px rgba(255,64,112,.4); z-index:4; }
         .cn-tl{top:-7px;left:-7px;} .cn-tr{top:-7px;right:-7px;}
         .cn-bl{bottom:-7px;left:-7px;} .cn-br{bottom:-7px;right:-7px;}
- 
+
         #videoStream {
             position:absolute; top:50%; left:50%;
             transform:translate(-50%,-50%) scaleX(-1);
-            width:240px; height:240px;
+            width:92%; height:92%;
             border-radius:50%; object-fit:cover; z-index:2; background:#100005;
             clip-path:circle(50%);
         }
- 
-        .cam-label { font-size:.56rem; letter-spacing:5px; color:rgba(255,150,170,.5); text-transform:uppercase; }
+
+        .cam-label { font-size:.56rem; letter-spacing:5px; color:rgba(255,150,170,.5); text-transform:uppercase; text-align:center; }
         .cam-status { font-size:.55rem; color:rgba(255,110,120,.6); text-align:center; letter-spacing:1px; display:none; max-width:220px; }
         .cam-status.active { display:block; }
         .ck { position:absolute; color:rgba(255,150,180,.5); font-size:.9rem; pointer-events:none; z-index:4; }
- 
-        .char-zone { flex:1; position:relative; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; min-height:300px; }
-        .char-zone img { height:350px; width:auto; object-fit:contain; object-position:bottom; mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); display:block; }
- 
-        .sidebar { flex:0 0 190px; display:flex; flex-direction:column; gap:8px; }
+
+        .char-zone { flex:1; position:relative; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; min-height:260px; min-width:160px; }
+        .char-zone img { height:clamp(200px, 32vw, 350px); width:auto; max-width:100%; object-fit:contain; object-position:bottom; mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); display:block; }
+
+        .sidebar { flex:0 0 190px; display:flex; flex-direction:column; gap:8px; min-width:170px; }
         .scard { background:rgba(22,0,6,.65); border:1px solid rgba(255,64,112,.28); border-radius:9px; padding:10px 12px; position:relative; }
         .scard::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,#ff4070,#c00030); border-radius:9px 0 0 9px; box-shadow:0 0 7px #ff4070; }
         .srow { display:flex; gap:6px; }
@@ -118,32 +123,32 @@
         .rec-list li { font-size:.76rem; color:rgba(255,200,215,.88); padding:3px 0 3px 13px; position:relative; border-bottom:1px solid rgba(255,64,112,.08); }
         .rec-list li:last-child { border-bottom:none; }
         .rec-list li::before { content:'›'; position:absolute; left:0; color:#ff4070; font-size:.9rem; text-shadow:0 0 5px #ff4070; }
- 
-        .bot-row { display:flex; gap:10px; width:100%; }
-        .bl { flex:1; min-height:128px; } .br { flex:1; min-height:128px; }
- 
+
+        .bot-row { display:flex; gap:10px; width:100%; flex-wrap:wrap; }
+        .bl { flex:1 1 260px; min-height:128px; } .br { flex:1 1 260px; min-height:128px; }
+
         .chat-inner { height:100%; display:flex; flex-direction:column; gap:5px; }
         .chat-top { font-size:.56rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
-        .chat-body { display:flex; gap:8px; flex:1; align-items:center; }
+        .chat-body { display:flex; gap:8px; flex:1; align-items:center; flex-wrap:wrap; }
         .chat-kanji { font-size:1.4rem; color:rgba(255,64,112,.2); writing-mode:vertical-rl; font-weight:bold; letter-spacing:4px; flex-shrink:0; }
-        .chat-data { flex:1; display:flex; flex-direction:column; gap:5px; }
+        .chat-data { flex:1; display:flex; flex-direction:column; gap:5px; min-width:120px; }
         .mbars { display:flex; flex-direction:column; gap:3px; align-self:flex-end; flex-shrink:0; }
         .mb { height:3px; border-radius:2px; background:linear-gradient(90deg,#ff4070,#ff90b0); box-shadow:0 0 4px #ff4070; animation:bPulse 2s ease-in-out infinite; }
         .mb:nth-child(1){width:50px;} .mb:nth-child(2){width:34px;animation-delay:.3s;} .mb:nth-child(3){width:42px;animation-delay:.6s;}
         @keyframes bPulse{0%,100%{opacity:.4;}50%{opacity:1;}}
         .chat-foot { font-size:.52rem; letter-spacing:3px; color:rgba(255,150,170,.25); text-align:center; text-transform:uppercase; }
- 
-        .soon-inner { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+
+        .soon-inner { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; }
         .soon-sub { font-size:.54rem; letter-spacing:5px; color:rgba(255,150,170,.48); text-transform:uppercase; }
-        .soon-title { font-family:'Noto Serif',serif; font-size:1.55rem; color:#fff; font-weight:700; font-style:italic; text-shadow:0 0 14px rgba(255,64,112,.75),0 0 30px rgba(255,64,112,.38); }
+        .soon-title { font-family:'Noto Serif',serif; font-size:clamp(1.15rem,2.6vw,1.55rem); color:#fff; font-weight:700; font-style:italic; text-shadow:0 0 14px rgba(255,64,112,.75),0 0 30px rgba(255,64,112,.38); }
         .soon-edad { font-family:'Noto Serif',serif; font-size:.78rem; color:rgba(255,180,200,.75); letter-spacing:2px; }
         .sdots { display:flex; gap:6px; }
         .sdot { width:7px; height:7px; border-radius:50%; background:#ff4070; box-shadow:0 0 8px #ff4070; animation:dBlink 1.4s ease-in-out infinite; }
         .sdot:nth-child(2){animation-delay:.2s;} .sdot:nth-child(3){animation-delay:.4s;}
         @keyframes dBlink{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
- 
+
         .footer { text-align:center; margin-top:7px; font-size:.56rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
- 
+
         /* ── POPUP GÉNERO ── */
         .popup-genero {
             position:fixed; top:50%; left:50%;
@@ -151,7 +156,7 @@
             z-index:1000; background:rgba(18,0,5,.95);
             border-radius:18px; padding:32px 44px;
             text-align:center; opacity:0; pointer-events:none;
-            transition:opacity .35s ease, transform .35s ease; min-width:300px;
+            transition:opacity .35s ease, transform .35s ease; min-width:300px; max-width:90vw;
         }
         .popup-genero > * { position:relative; z-index:2; }
         .popup-genero.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
@@ -169,7 +174,7 @@
             box-shadow:0 0 12px rgba(255,64,112,.4); transition:all .2s; position:relative; z-index:10;
         }
         .gen-btn:hover { background:rgba(255,64,112,.25); box-shadow:0 0 20px rgba(255,64,112,.7); transform:scale(1.05); }
- 
+
         /* ── POPUP EMOCIÓN ── */
         #popup-persona {
             position:fixed; bottom: 20px; right: 20px;
@@ -178,7 +183,7 @@
             z-index:999; background:rgba(20,0,6,.92);
             border-radius:16px; padding:18px 24px;
             text-align:center; opacity:0; pointer-events:none;
-            transition:opacity .35s ease, transform .35s ease; min-width:220px; max-width:260px;
+            transition:opacity .35s ease, transform .35s ease; min-width:220px; max-width:min(260px,80vw);
         }
         #popup-persona.show { opacity:1; pointer-events:auto; transform:scale(1); }
         #popup-persona::before {
@@ -193,10 +198,94 @@
         .popup-edad { font-family:'Noto Serif',serif; font-size:.8rem; color:rgba(255,180,200,.8); margin-top:4px; letter-spacing:2px; }
         .popup-genero-txt { font-size:.6rem; letter-spacing:3px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:2px; }
         .popup-sub  { font-size:.52rem; letter-spacing:4px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:6px; }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — laptops medianas / pantallas 13"-15"
+           ══════════════════════════════════════════════ */
+        @media (max-width:1200px) {
+            .page-wrap { max-width:94%; }
+            .sidebar { flex:0 0 170px; min-width:150px; }
+        }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — tablets y laptops pequeñas / pantallas partidas
+           ══════════════════════════════════════════════ */
+        @media (max-width:1024px) {
+            body { padding:12px; }
+            .hero-row { flex-wrap:wrap; }
+            .cam-zone { flex:1 1 100%; order:1; }
+            .char-zone { flex:1 1 100%; order:2; min-height:220px; }
+            .sidebar { flex:1 1 100%; flex-direction:row; order:3; min-width:0; }
+            .scard { flex:1; }
+            .cam-outer { width:clamp(220px, 46vw, 300px); }
+        }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — móviles y tablets verticales
+           Cámara cuadrada y más grande, todo en columna
+           ══════════════════════════════════════════════ */
+        @media (max-width:768px) {
+            body { padding:10px 12px; }
+            .main-title { letter-spacing:2px; }
+            .hero-row { gap:8px; }
+            .nb-inner { padding:10px 12px; }
+            .caps-row { display:none; }
+            .ssym { display:none; }
+            .topbar { margin-bottom:8px; }
+
+            .cam-zone { padding:2px 0 6px; }
+            .cam-outer { width:min(78vw, 340px); }
+
+            .char-zone { min-height:180px; }
+            .char-zone img { height:clamp(160px, 28vw, 260px); }
+
+            .sidebar { flex-direction:column; }
+            .scard { flex:none; }
+
+            .bot-row { flex-direction:column; }
+            .bl, .br { flex:1 1 auto; min-height:110px; }
+
+            #popup-persona { right:10px; bottom:10px; padding:14px 18px; max-width:min(230px,72vw); }
+        }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — celulares chicos
+           Prioriza la cámara: cuadrada, grande, casi todo el ancho
+           ══════════════════════════════════════════════ */
+        @media (max-width:480px) {
+            body { padding:8px; }
+            .main-title { font-size:1.15rem; letter-spacing:1.5px; }
+            .kanji-col { display:none; }
+
+            .cam-outer { width:min(88vw, 92vw); }
+            .cam-label { font-size:.5rem; letter-spacing:3px; }
+
+            .char-zone { min-height:0; display:none; } /* prioriza la cámara en pantallas muy chicas */
+
+            .sl { font-size:.5rem; }
+            .sv, .svi { font-size:.85rem; }
+
+            .popup-genero { padding:24px 20px; min-width:auto; width:88vw; }
+            .gen-btn { padding:9px 18px; font-size:.82rem; }
+
+            .footer { font-size:.5rem; letter-spacing:2px; }
+        }
+
+        /* Pantallas muy anchas (monitores grandes / ultrawide): que no quede todo perdido a los lados */
+        @media (min-width:1600px) {
+            .page-wrap { max-width:1320px; }
+        }
+
+        /* Landscape en celulares: reducir alturas para que quepa sin scroll excesivo */
+        @media (max-width:900px) and (orientation:landscape) {
+            .char-zone { display:none; }
+            .cam-outer { width:min(38vh, 260px); }
+            .bot-row { display:none; }
+        }
     </style>
 </head>
 <body>
- 
+
     <div class="kanji-col L">邪　不　道　刃　無　限　永　遠　紅　花</div>
     <div class="kanji-col R">邪　不　道　刃　無　限　永　遠　紅　花</div>
     <div class="bgf" style="top:7%;  left:1.5%;">❀</div>
@@ -212,10 +301,10 @@
     <div class="petal" style="left:72%; font-size:.8rem;animation-duration:8s; animation-delay:.6s;">✿</div>
     <div class="petal" style="left:84%; font-size:.7rem;animation-duration:10s;animation-delay:2.2s;">❀</div>
     <div class="petal" style="left:50%; font-size:.65rem;animation-duration:11s;animation-delay:1.6s;">✾</div>
- 
+
     <div class="page-wrap">
         <h1 class="main-title">Analizador de Emociones</h1>
- 
+
         <div class="hero-row">
             <!-- PANEL GRANDE -->
             <div class="neon-box" style="flex:1; overflow:hidden;">
@@ -241,7 +330,7 @@
                                 <div class="cam-ring cr2"></div>
                                 <div class="cam-ring cr1"></div>
                                 <video id="videoStream" autoplay muted playsinline></video>
-                                <svg class="cam-svg" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+                                <svg class="cam-svg" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
                                     <defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
                                     <g filter="url(#glow)" fill="none">
                                         <circle cx="130" cy="130" r="116" stroke="#ff4070" stroke-width="3"/>
@@ -289,7 +378,7 @@
                     </div>
                 </div>
             </div>
- 
+
             <!-- SIDEBAR -->
             <div class="sidebar">
                 <div class="neon-box scard">
@@ -323,7 +412,7 @@
                 </div>
             </div>
         </div>
- 
+
         <!-- FILA INFERIOR -->
         <div class="bot-row">
             <div class="neon-box bl">
@@ -354,20 +443,20 @@
             </div>
         </div>
     </div>
- 
+
     <div class="footer">∞ &nbsp; • &nbsp; Actualizando en tiempo real &nbsp; • &nbsp; ∞</div>
- 
+
     <!-- POPUP GÉNERO -->
     <div id="popup-genero" class="popup-genero show">
         <div class="popup-icon">👤</div>
         <div class="popup-tipo">Selecciona tu género</div>
         <div class="popup-sub" style="margin-bottom:16px;">Para personalizar tu análisis</div>
-        <div style="display:flex; gap:14px; justify-content:center; margin-top:8px;">
+        <div style="display:flex; gap:14px; justify-content:center; margin-top:8px; flex-wrap:wrap;">
             <button id="btn-hombre" class="gen-btn">👨 Hombre</button>
             <button id="btn-mujer"  class="gen-btn">👩 Mujer</button>
         </div>
     </div>
- 
+
     <!-- POPUP EMOCIÓN -->
     <div id="popup-persona">
         <div class="popup-icon" id="popup-icon">👤</div>
@@ -376,11 +465,11 @@
         <div class="popup-genero-txt" id="popup-genero-txt">—</div>
         <div class="popup-sub">Emoción detectada</div>
     </div>
- 
+
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
         const MODELS_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
- 
+
         const recomendaciones = {
             'feliz':       [
                 'Comparte tu alegría con alguien especial 😊',
@@ -458,10 +547,10 @@
                 'Si puedes, sal a tomar aire fresco'
             ],
         };
- 
+
         let generoUsuario    = null;
         let modelos_cargados = false;
- 
+
         function set(id, v) {
             const e = document.getElementById(id);
             if (!e) return;
@@ -471,7 +560,7 @@
             e.style.fontStyle = '';
             e.style.fontSize  = '';
         }
- 
+
         // ── Popup género ──
         document.getElementById('btn-hombre').addEventListener('click', () => {
             generoUsuario = 'Hombre';
@@ -485,7 +574,7 @@
             set('genero', 'Mujer'); set('genero2', 'Mujer');
             iniciarCamara();
         });
- 
+
         // ── Cargar modelos ──
         async function cargarModelos() {
             try {
@@ -500,13 +589,24 @@
                 console.error('Error cargando modelos:', e);
             }
         }
- 
+
         // ── Iniciar cámara ──
         const vid = document.getElementById('videoStream');
- 
+
         async function iniciarCamara() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                // En celulares pedimos la cámara frontal por defecto (más natural para "selfie")
+                const constraints = {
+                    video: { facingMode: 'user' },
+                    audio: false
+                };
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e) {
+                    // Fallback si el dispositivo no soporta facingMode (algunas laptops/PC)
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
                 vid.srcObject = stream;
                 vid.addEventListener('playing', () => {
                     if (modelos_cargados) iniciarAnalisis();
@@ -520,7 +620,7 @@
                 document.getElementById('cam-status').classList.add('active');
             }
         }
- 
+
         // ── Mapeo de emociones face-api → español con género ──
         const mapaEmociones = {
             happy:     () => 'feliz',
@@ -531,33 +631,33 @@
             surprised: () => generoUsuario === 'Hombre' ? 'sorprendido': 'sorprendida',
             neutral:   () => 'neutral',
         };
- 
+
         let emocionFijada    = null;   // emoción que se está mostrando en pantalla
         let popupTimer       = null;
         let enBloqueo        = false;  // true = no tocar nada hasta que pasen 30s
         let historialEdad    = [];
         const VENTANA_EDAD   = 10;
- 
+
         async function iniciarAnalisis() {
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
- 
+
                 // Si estamos en bloqueo, no analizar nada
                 if (enBloqueo) return;
- 
+
                 const detecciones = await faceapi
                     .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.4 }))
                     .withFaceExpressions()
                     .withAgeAndGender();
- 
+
                 if (!detecciones || detecciones.length === 0) {
                     set('emocion',  'Sin rostro');
                     set('emocion2', 'Sin rostro');
                     return;
                 }
- 
+
                 const d = detecciones[0];
- 
+
                 // ── Edad suavizada + corrección de sesgo ──
                 historialEdad.push(d.age);
                 if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
@@ -565,10 +665,10 @@
                 const edadEstimada = Math.round(edadPromedio);
                 set('edad', edadEstimada + ' años');
                 set('edadDisplay', 'Edad: ' + edadEstimada);
- 
+
                 // ── Detectar emoción con sistema de puntaje ponderado ──
                 const expr = d.expressions;
- 
+
                 const angry     = expr.angry     || 0;
                 const sad       = expr.sad        || 0;
                 const fearful   = expr.fearful    || 0;
@@ -576,28 +676,28 @@
                 const disgusted = expr.disgusted  || 0;
                 const surprised = expr.surprised  || 0;
                 const neutral   = expr.neutral    || 0;
- 
+
                 // Ignorar si no hay ninguna señal mínima de expresión
                 const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
                 if (maxExpr < 0.10) return;
- 
+
                 // Sueño: neutral muy alto con prácticamente sin expresión (umbral estricto)
                 const esSuenio = neutral > 0.85 && maxExpr < 0.08;
- 
+
                 // Estrés: miedo y enojo presentes al mismo tiempo
                 const esEstres = fearful >= 0.12 && angry >= 0.10 && (fearful + angry) > 0.28;
- 
+
                 // Puntaje ponderado para enojo:
                 // angry es dominante O disgusted es muy alto (cara de asco ≈ enojo)
                 const puntajeEnojo = angry * 1.5 + disgusted * 0.8;
- 
+
                 // Puntaje ponderado para tristeza:
                 // sad es dominante O fearful moderado sin angry (miedo tranquilo ≈ tristeza)
                 const puntajeTristeza = sad * 1.5 + fearful * 0.5;
- 
+
                 let emocion;
                 const suf = generoUsuario === 'Hombre' ? 'o' : 'a';
- 
+
                 if (esSuenio) {
                     emocion = generoUsuario === 'Hombre' ? 'somnoliento' : 'somnolienta';
                 } else if (esEstres) {
@@ -615,26 +715,26 @@
                 } else {
                     emocion = 'neutral';
                 }
- 
+
                 // ── Fijar emoción en pantalla y bloquear 30 segundos ──
                 emocionFijada = emocion;
                 enBloqueo     = true;
- 
+
                 const display = emocion.charAt(0).toUpperCase() + emocion.slice(1);
                 set('emocion',       display);
                 set('emocion2',      display);
                 set('soon-titulo',   display);
- 
+
                 // Recomendaciones según la emoción detectada
                 const recs = recomendaciones[emocion] || recomendaciones['neutral'];
                 document.getElementById('recomendaciones').innerHTML =
                     recs.map(r => `<li>${r}</li>`).join('');
- 
+
                 mostrarPopupEmocion(emocion, edadEstimada);
- 
+
             }, 1200);
         }
- 
+
         // ── Popup ──
         function mostrarPopupEmocion(emocion, edad) {
             const iconos = {
@@ -651,7 +751,7 @@
             document.getElementById('popup-edad').textContent      = `Edad estimada: ${edad} años`;
             document.getElementById('popup-genero-txt').textContent = generoUsuario || '';
             popup.classList.add('show');
- 
+
             if (popupTimer) clearTimeout(popupTimer);
             popupTimer = setTimeout(() => {
                 popup.classList.remove('show');
@@ -659,7 +759,7 @@
                 emocionFijada = null;
             }, 30000);
         }
- 
+
         // ── Fallback Flask — NO sobreescribe si hay bloqueo activo ──
         function intentarFlask() {
             if (enBloqueo) return;  // respetar el bloqueo de 30s
@@ -678,12 +778,12 @@
                     }
                 }).catch(() => {});
         }
- 
+
         // ── Inicio ──
         cargarModelos();
         mostrarPopupGenero();
         setInterval(intentarFlask, 2000);
- 
+
         function mostrarPopupGenero() {
             document.getElementById('popup-genero').classList.add('show');
         }
