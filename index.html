@@ -588,6 +588,9 @@
         const db = firebase.database();
         const estadoRef = db.ref('estado_actual');
 
+        // ── Cada cuánto tiempo cambia la pregunta mostrada sobre el personaje ──
+        const DURACION_CICLO_PREGUNTAS_MS = 25000; // antes: 11000
+
         // ── Recomendaciones generales por emoción (independientes de la pregunta) ──
         const recomendacionesPorEmocion = {
             feliz:        ['Comparte esa alegría con alguien cercano', 'Aprovecha la energía positiva para crear algo', 'Guarda este momento para recordarlo después'],
@@ -650,10 +653,15 @@
         let ultimaClaseEmocionImg = null;
 
         // ── Muestra el personaje base (PERSONAJEE.png) con una pregunta genérica
-        //    encima, invitando a reaccionar. Se usa ANTES de detectar la emoción. ──
+        //    encima, invitando a reaccionar. Se usa ANTES de detectar la emoción.
+        //    IMPORTANTE: también limpia el panel de resultados (emoción/edad de la
+        //    reacción anterior), para que no se quede "registrado" un resultado
+        //    viejo mientras se muestra una pregunta nueva. ──
         let ultimaPreguntaMostrada = null;
 
         function mostrarPreguntaBase() {
+            reiniciarPanelResultados();
+
             const img = document.getElementById('charImg');
             if (img) {
                 if (ultimaClaseEmocionImg) { img.classList.remove('emo-' + ultimaClaseEmocionImg); ultimaClaseEmocionImg = null; }
@@ -668,7 +676,7 @@
                 bubble.textContent = pregunta;
                 bubble.classList.add('show');
                 clearTimeout(bubble._timer);
-                bubble._timer = setTimeout(() => bubble.classList.remove('show'), 9000);
+                bubble._timer = setTimeout(() => bubble.classList.remove('show'), Math.min(9000, DURACION_CICLO_PREGUNTAS_MS - 2000));
             }
         }
 
@@ -678,7 +686,7 @@
             if (cicloPreguntaInterval) clearInterval(cicloPreguntaInterval);
             cicloPreguntaInterval = setInterval(() => {
                 if (!enBloqueo) mostrarPreguntaBase();
-            }, 11000);
+            }, DURACION_CICLO_PREGUNTAS_MS);
         }
 
         // ── Cambia el personaje a la imagen de la emoción detectada (oculta la
