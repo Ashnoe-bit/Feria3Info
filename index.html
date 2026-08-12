@@ -106,7 +106,45 @@
         .ck { position:absolute; color:rgba(255,150,180,.5); font-size:.9rem; pointer-events:none; z-index:4; }
 
         .char-zone { flex:1; position:relative; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; min-height:260px; min-width:160px; }
-        .char-zone img { height:clamp(200px, 32vw, 350px); width:auto; max-width:100%; object-fit:contain; object-position:bottom; mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); display:block; }
+        .char-zone img { height:clamp(200px, 32vw, 350px); width:auto; max-width:100%; object-fit:contain; object-position:bottom; mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); display:block; transition:filter .5s ease; }
+
+        /* ── Reacciones del personaje según la emoción detectada ── */
+        @keyframes reactBounce { 0%,100%{transform:translateY(0);} 30%{transform:translateY(-14px);} 50%{transform:translateY(0);} 65%{transform:translateY(-6px);} 80%{transform:translateY(0);} }
+        @keyframes reactShake  { 0%,100%{transform:translateX(0) rotate(0);} 20%{transform:translateX(-6px) rotate(-2deg);} 40%{transform:translateX(6px) rotate(2deg);} 60%{transform:translateX(-4px) rotate(-1deg);} 80%{transform:translateX(4px) rotate(1deg);} }
+        @keyframes reactDroop  { 0%{transform:translateY(0);} 100%{transform:translateY(6px);} }
+        @keyframes reactPulse  { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+
+        .char-zone img.emo-feliz       { animation:reactBounce 1.1s ease; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)) saturate(1.3) brightness(1.08); }
+        .char-zone img.emo-triste      { animation:reactDroop .8s ease forwards; filter:drop-shadow(-6px 0 20px rgba(80,80,190,.4)) saturate(.65) brightness(.85); }
+        .char-zone img.emo-enojado,
+        .char-zone img.emo-enojada     { animation:reactShake .5s ease; filter:drop-shadow(-6px 0 20px rgba(220,0,20,.6)) saturate(1.5) contrast(1.15); }
+        .char-zone img.emo-sorprendido,
+        .char-zone img.emo-sorprendida { animation:reactPulse .6s ease; filter:drop-shadow(-6px 0 20px rgba(255,210,0,.45)) brightness(1.15); }
+        .char-zone img.emo-estresado,
+        .char-zone img.emo-estresada   { animation:reactShake .6s ease 2; filter:drop-shadow(-6px 0 20px rgba(255,120,0,.4)) saturate(1.2); }
+        .char-zone img.emo-miedoso,
+        .char-zone img.emo-miedosa     { animation:reactShake .4s ease 2; filter:drop-shadow(-6px 0 20px rgba(140,60,200,.4)) brightness(.92); }
+        .char-zone img.emo-disgustado,
+        .char-zone img.emo-disgustada  { animation:reactPulse .5s ease; filter:drop-shadow(-6px 0 20px rgba(120,180,40,.4)) saturate(1.1); }
+        .char-zone img.emo-neutral     { filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); }
+        .char-zone img.emo-somnoliento,
+        .char-zone img.emo-somnolienta { animation:reactDroop 1.4s ease forwards; filter:drop-shadow(-6px 0 20px rgba(120,80,180,.4)) saturate(.6) brightness(.8); }
+
+        .char-bubble {
+            position:absolute; top:6%; left:50%; transform:translateX(-50%) scale(.85);
+            background:rgba(20,0,6,.94); border-radius:14px; padding:10px 16px;
+            max-width:min(230px, 60vw); text-align:center; font-family:'Noto Serif',serif; font-size:.78rem;
+            color:#fff; opacity:0; pointer-events:none; transition:opacity .35s ease, transform .35s ease;
+            z-index:5;
+        }
+        .char-bubble::before {
+            content:''; position:absolute; inset:0; border-radius:14px; padding:2px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            box-shadow:0 0 14px rgba(255,64,112,.5); pointer-events:none;
+        }
+        .char-bubble.show { opacity:1; transform:translateX(-50%) scale(1); }
 
         .sidebar { flex:0 0 190px; display:flex; flex-direction:column; gap:8px; min-width:170px; }
         .scard { background:rgba(22,0,6,.65); border:1px solid rgba(255,64,112,.28); border-radius:9px; padding:10px 12px; position:relative; }
@@ -379,7 +417,8 @@
                         </div>
                         <!-- ZONA PERSONAJE -->
                         <div class="char-zone">
-                            <img src="PERSONAJEE.png" alt="personajes">
+                            <img id="charImg" src="PERSONAJEE.png" alt="personajes">
+                            <div id="charBubble" class="char-bubble"></div>
                         </div>
                     </div>
                 </div>
@@ -578,6 +617,61 @@
             ],
         };
 
+        // ── Preguntas reactivas según la emoción detectada ──
+        const preguntasReaccion = {
+            feliz:        ['¿Qué fue lo mejor de tu día?', '¿Qué canción te pondrías ahora mismo?', '¿Con quién compartirías este momento?'],
+            triste:       ['¿Quieres contarme qué pasó?', '¿Qué te ayudaría a sentirte mejor?', '¿Hay alguien con quien puedas hablar de esto?'],
+            enojado:      ['¿Qué fue lo que te molestó?', '¿Qué necesitas para calmarte?', '¿Ya respiraste profundo?'],
+            enojada:      ['¿Qué fue lo que te molestó?', '¿Qué necesitas para calmarte?', '¿Ya respiraste profundo?'],
+            estresado:    ['¿Qué es lo más urgente ahora mismo?', '¿Puedes tomarte 5 minutos?', '¿Qué se puede dejar para después?'],
+            estresada:    ['¿Qué es lo más urgente ahora mismo?', '¿Puedes tomarte 5 minutos?', '¿Qué se puede dejar para después?'],
+            miedoso:      ['¿Qué te preocupa ahora?', '¿Qué te haría sentir más seguro?', '¿Ya hablaste de esto con alguien?'],
+            miedosa:      ['¿Qué te preocupa ahora?', '¿Qué te haría sentir más seguro?', '¿Ya hablaste de esto con alguien?'],
+            sorprendido:  ['¿Qué te tomó por sorpresa?', '¿Fue una sorpresa buena o mala?', '¿Ya lo procesaste bien?'],
+            sorprendida:  ['¿Qué te tomó por sorpresa?', '¿Fue una sorpresa buena o mala?', '¿Ya lo procesaste bien?'],
+            disgustado:   ['¿Qué te causó esa reacción?', '¿Prefieres cambiar de ambiente?', '¿Qué te ayudaría a despejarte?'],
+            disgustada:   ['¿Qué te causó esa reacción?', '¿Prefieres cambiar de ambiente?', '¿Qué te ayudaría a despejarte?'],
+            neutral:      ['¿En qué estás pensando?', '¿Qué planes tienes hoy?', '¿Qué te gustaría lograr ahora?'],
+            somnoliento:  ['¿Dormiste bien anoche?', '¿Necesitas un descanso?', '¿Un café te ayudaría?'],
+            somnolienta:  ['¿Dormiste bien anoche?', '¿Necesitas un descanso?', '¿Un café te ayudaría?'],
+        };
+
+        // Si más adelante consigues imágenes distintas por emoción, agrégalas aquí:
+        // ej. { feliz: 'PERSONAJE_feliz.png', triste: 'PERSONAJE_triste.png' }
+        // El código las usa automáticamente si existen; si no, sigue con la imagen base.
+        const imagenesPersonaje = {};
+        const IMAGEN_BASE_PERSONAJE = 'PERSONAJEE.png';
+        let ultimaClaseEmocionImg = null;
+
+        function reaccionarPersonaje(emocionClave) {
+            const img = document.getElementById('charImg');
+            if (img) {
+                if (ultimaClaseEmocionImg) img.classList.remove('emo-' + ultimaClaseEmocionImg);
+                void img.offsetWidth; // fuerza reinicio de la animación aunque se repita la misma emoción
+                img.classList.add('emo-' + emocionClave);
+                ultimaClaseEmocionImg = emocionClave;
+
+                const imgEspecifica = imagenesPersonaje[emocionClave];
+                if (imgEspecifica) {
+                    const test = new Image();
+                    test.onload  = () => { img.src = imgEspecifica; };
+                    test.onerror = () => { img.src = IMAGEN_BASE_PERSONAJE; };
+                    test.src = imgEspecifica;
+                } else {
+                    img.src = IMAGEN_BASE_PERSONAJE;
+                }
+            }
+
+            const bubble = document.getElementById('charBubble');
+            if (bubble) {
+                const opciones = preguntasReaccion[emocionClave] || preguntasReaccion['neutral'];
+                bubble.textContent = opciones[Math.floor(Math.random() * opciones.length)];
+                bubble.classList.add('show');
+                clearTimeout(bubble._timer);
+                bubble._timer = setTimeout(() => bubble.classList.remove('show'), 8000);
+            }
+        }
+
         let generoUsuario    = null;
         let modelos_cargados = false;
         let esFuenteCamara   = false; // true = este dispositivo tiene la cámara activa
@@ -604,6 +698,8 @@
             const recs = recomendaciones[emocionClave] || recomendaciones['neutral'];
             document.getElementById('recomendaciones').innerHTML =
                 recs.map(r => `<li>${r}</li>`).join('');
+
+            reaccionarPersonaje(emocionClave);
 
             if (disparaPopup) mostrarPopupEmocion(emocionClave, edad, genero);
         }
