@@ -624,23 +624,23 @@
             ],
         };
 
-        // ── Preguntas reactivas según la emoción detectada ──
+        // ── Preguntas de escenario ("¿cómo reaccionarías si...?"), ligadas a la emoción detectada ──
         const preguntasReaccion = {
-            feliz:        ['¿Qué fue lo mejor de tu día?', '¿Qué canción te pondrías ahora mismo?', '¿Con quién compartirías este momento?'],
-            triste:       ['¿Quieres contarme qué pasó?', '¿Qué te ayudaría a sentirte mejor?', '¿Hay alguien con quien puedas hablar de esto?'],
-            enojado:      ['¿Qué fue lo que te molestó?', '¿Qué necesitas para calmarte?', '¿Ya respiraste profundo?'],
-            enojada:      ['¿Qué fue lo que te molestó?', '¿Qué necesitas para calmarte?', '¿Ya respiraste profundo?'],
-            estresado:    ['¿Qué es lo más urgente ahora mismo?', '¿Puedes tomarte 5 minutos?', '¿Qué se puede dejar para después?'],
-            estresada:    ['¿Qué es lo más urgente ahora mismo?', '¿Puedes tomarte 5 minutos?', '¿Qué se puede dejar para después?'],
-            miedoso:      ['¿Qué te preocupa ahora?', '¿Qué te haría sentir más seguro?', '¿Ya hablaste de esto con alguien?'],
-            miedosa:      ['¿Qué te preocupa ahora?', '¿Qué te haría sentir más seguro?', '¿Ya hablaste de esto con alguien?'],
-            sorprendido:  ['¿Qué te tomó por sorpresa?', '¿Fue una sorpresa buena o mala?', '¿Ya lo procesaste bien?'],
-            sorprendida:  ['¿Qué te tomó por sorpresa?', '¿Fue una sorpresa buena o mala?', '¿Ya lo procesaste bien?'],
-            disgustado:   ['¿Qué te causó esa reacción?', '¿Prefieres cambiar de ambiente?', '¿Qué te ayudaría a despejarte?'],
-            disgustada:   ['¿Qué te causó esa reacción?', '¿Prefieres cambiar de ambiente?', '¿Qué te ayudaría a despejarte?'],
-            neutral:      ['¿En qué estás pensando?', '¿Qué planes tienes hoy?', '¿Qué te gustaría lograr ahora?'],
-            somnoliento:  ['¿Dormiste bien anoche?', '¿Necesitas un descanso?', '¿Un café te ayudaría?'],
-            somnolienta:  ['¿Dormiste bien anoche?', '¿Necesitas un descanso?', '¿Un café te ayudaría?'],
+            feliz:        ['¿Cómo reaccionarías si te dieran una sorpresa que amas?', '¿Qué harías si ganaras algo que querías mucho?', '¿Cómo reaccionarías si un amigo te dijera algo muy lindo?'],
+            triste:       ['¿Cómo reaccionarías si perdieras algo importante para ti?', '¿Qué harías si un plan que esperabas se cancelara?', '¿Cómo reaccionarías si alguien te decepcionara?'],
+            enojado:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
+            enojada:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
+            estresado:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
+            estresada:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
+            miedoso:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
+            miedosa:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
+            sorprendido:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
+            sorprendida:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
+            disgustado:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
+            disgustada:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
+            neutral:      ['¿Cómo reaccionarías si tuvieras un día libre sin planes?', '¿Qué harías si te dieran a elegir cualquier actividad ahora?', '¿Cómo reaccionarías si te ofrecieran empezar algo nuevo?'],
+            somnoliento:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
+            somnolienta:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
         };
 
         // Imágenes reales del personaje por emoción (recortadas del collage que subiste).
