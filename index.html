@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <title>Analizador de Emociones</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap%22 rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
@@ -77,8 +77,6 @@
 
         .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 0 8px; min-width:0; }
 
-        /* La cámara ahora es fluida y SIEMPRE cuadrada gracias a aspect-ratio.
-           clamp() la hace más grande en pantallas chicas (celular) y controlada en pantallas grandes. */
         .cam-outer { position:relative; width:clamp(200px, 42vw, 260px); aspect-ratio:1/1; }
 
         .cam-ring { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%; }
@@ -149,6 +147,15 @@
 
         .footer { text-align:center; margin-top:7px; font-size:.56rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
 
+        .sync-badge {
+            font-size:.5rem; letter-spacing:2px; text-transform:uppercase;
+            color:rgba(120,255,170,.75); text-align:center; margin-top:2px;
+            display:flex; align-items:center; justify-content:center; gap:5px;
+        }
+        .sync-dot { width:6px; height:6px; border-radius:50%; background:#3dffa0; box-shadow:0 0 6px #3dffa0; animation:dBlink 1.4s ease-in-out infinite; }
+        .sync-badge.off { color:rgba(255,150,170,.4); }
+        .sync-badge.off .sync-dot { background:rgba(255,150,170,.4); box-shadow:none; animation:none; }
+
         /* ── POPUP GÉNERO ── */
         .popup-genero {
             position:fixed; top:50%; left:50%;
@@ -174,6 +181,8 @@
             box-shadow:0 0 12px rgba(255,64,112,.4); transition:all .2s; position:relative; z-index:10;
         }
         .gen-btn:hover { background:rgba(255,64,112,.25); box-shadow:0 0 20px rgba(255,64,112,.7); transform:scale(1.05); }
+        .gen-btn.alt { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.06); }
+        .gen-btn.alt:hover { background:rgba(255,255,255,.16); box-shadow:0 0 16px rgba(255,255,255,.25); }
 
         /* ── POPUP EMOCIÓN ── */
         #popup-persona {
@@ -208,7 +217,7 @@
         }
 
         /* ══════════════════════════════════════════════
-           RESPONSIVE — tablets y laptops pequeñas / pantallas partidas
+           RESPONSIVE — tablets y laptops pequeñas
            ══════════════════════════════════════════════ */
         @media (max-width:1024px) {
             body { padding:12px; }
@@ -222,7 +231,6 @@
 
         /* ══════════════════════════════════════════════
            RESPONSIVE — móviles y tablets verticales
-           Cámara cuadrada y más grande, todo en columna
            ══════════════════════════════════════════════ */
         @media (max-width:768px) {
             body { padding:10px 12px; }
@@ -250,7 +258,6 @@
 
         /* ══════════════════════════════════════════════
            RESPONSIVE — celulares chicos
-           Prioriza la cámara: cuadrada, grande, casi todo el ancho
            ══════════════════════════════════════════════ */
         @media (max-width:480px) {
             body { padding:8px; }
@@ -260,7 +267,7 @@
             .cam-outer { width:min(88vw, 92vw); }
             .cam-label { font-size:.5rem; letter-spacing:3px; }
 
-            .char-zone { min-height:0; display:none; } /* prioriza la cámara en pantallas muy chicas */
+            .char-zone { min-height:0; display:none; }
 
             .sl { font-size:.5rem; }
             .sv, .svi { font-size:.85rem; }
@@ -271,12 +278,10 @@
             .footer { font-size:.5rem; letter-spacing:2px; }
         }
 
-        /* Pantallas muy anchas (monitores grandes / ultrawide): que no quede todo perdido a los lados */
         @media (min-width:1600px) {
             .page-wrap { max-width:1320px; }
         }
 
-        /* Landscape en celulares: reducir alturas para que quepa sin scroll excesivo */
         @media (max-width:900px) and (orientation:landscape) {
             .char-zone { display:none; }
             .cam-outer { width:min(38vh, 260px); }
@@ -370,6 +375,7 @@
                             </div>
                             <div class="cam-label">∞ Camara en vivo ∞</div>
                             <div id="cam-status" class="cam-status">No se detecto camara. Conecta una camara.</div>
+                            <div id="sync-badge" class="sync-badge off"><span class="sync-dot"></span><span id="sync-text">Conectando...</span></div>
                         </div>
                         <!-- ZONA PERSONAJE -->
                         <div class="char-zone">
@@ -455,6 +461,9 @@
             <button id="btn-hombre" class="gen-btn">👨 Hombre</button>
             <button id="btn-mujer"  class="gen-btn">👩 Mujer</button>
         </div>
+        <div style="margin-top:14px;">
+            <button id="btn-soloVer" class="gen-btn alt">👀 Solo ver (sin cámara)</button>
+        </div>
     </div>
 
     <!-- POPUP EMOCIÓN -->
@@ -466,9 +475,30 @@
         <div class="popup-sub">Emoción detectada</div>
     </div>
 
+    <!-- Firebase (version compat, para usar directo con <script> sin npm) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
-        const MODELS_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+        // face-api.js NO se carga desde raw.githubusercontent.com: ese dominio no es un CDN
+        // real y provoca cargas lentísimas (o directamente colgadas). jsdelivr sí es un CDN.
+        const MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+
+        // ── Firebase: vincula celular ↔ laptop en tiempo real ──
+        const firebaseConfig = {
+            apiKey: "AIzaSyBR35Hc0eSytaOLhrdH97CoVyG7-U_uM4o",
+            authDomain: "analizador-de-emociones.firebaseapp.com",
+            databaseURL: "https://analizador-de-emociones-default-rtdb.firebaseio.com",
+            projectId: "analizador-de-emociones",
+            storageBucket: "analizador-de-emociones.firebasestorage.app",
+            messagingSenderId: "522493234294",
+            appId: "1:522493234294:web:2da867b7de8977dccfa357",
+            measurementId: "G-SG2LQWCXHL"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const estadoRef = db.ref('estado_actual');
 
         const recomendaciones = {
             'feliz':       [
@@ -550,29 +580,54 @@
 
         let generoUsuario    = null;
         let modelos_cargados = false;
+        let esFuenteCamara   = false; // true = este dispositivo tiene la cámara activa
 
         function set(id, v) {
             const e = document.getElementById(id);
             if (!e) return;
             e.textContent = v;
-            // quitar el estilo tenue de "analizando" cuando llega un valor real
             e.style.opacity   = '';
             e.style.fontStyle = '';
             e.style.fontSize  = '';
         }
 
+        // ── Renderiza un resultado (local o recibido de Firebase) en toda la UI ──
+        function mostrarResultado({ genero, edad, emocionClave, disparaPopup = true }) {
+            const display = emocionClave.charAt(0).toUpperCase() + emocionClave.slice(1);
+            if (genero) { set('genero', genero); set('genero2', genero); }
+            set('edad', edad + ' años');
+            set('edadDisplay', 'Edad: ' + edad);
+            set('emocion', display);
+            set('emocion2', display);
+            set('soon-titulo', display);
+
+            const recs = recomendaciones[emocionClave] || recomendaciones['neutral'];
+            document.getElementById('recomendaciones').innerHTML =
+                recs.map(r => `<li>${r}</li>`).join('');
+
+            if (disparaPopup) mostrarPopupEmocion(emocionClave, edad, genero);
+        }
+
         // ── Popup género ──
         document.getElementById('btn-hombre').addEventListener('click', () => {
             generoUsuario = 'Hombre';
+            esFuenteCamara = true;
             document.getElementById('popup-genero').classList.remove('show');
             set('genero', 'Hombre'); set('genero2', 'Hombre');
             iniciarCamara();
         });
         document.getElementById('btn-mujer').addEventListener('click', () => {
             generoUsuario = 'Mujer';
+            esFuenteCamara = true;
             document.getElementById('popup-genero').classList.remove('show');
             set('genero', 'Mujer'); set('genero2', 'Mujer');
             iniciarCamara();
+        });
+        // "Solo ver": no activa cámara, solo escucha lo que llegue de otro dispositivo por Firebase
+        document.getElementById('btn-soloVer').addEventListener('click', () => {
+            document.getElementById('popup-genero').classList.remove('show');
+            set('genero', 'Esperando...'); set('genero2', 'Esperando...');
+            set('emocion', 'Esperando datos...'); set('emocion2', 'Esperando datos...');
         });
 
         // ── Cargar modelos ──
@@ -595,16 +650,11 @@
 
         async function iniciarCamara() {
             try {
-                // En celulares pedimos la cámara frontal por defecto (más natural para "selfie")
-                const constraints = {
-                    video: { facingMode: 'user' },
-                    audio: false
-                };
+                const constraints = { video: { facingMode: 'user' }, audio: false };
                 let stream;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia(constraints);
                 } catch (e) {
-                    // Fallback si el dispositivo no soporta facingMode (algunas laptops/PC)
                     stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 }
                 vid.srcObject = stream;
@@ -621,28 +671,15 @@
             }
         }
 
-        // ── Mapeo de emociones face-api → español con género ──
-        const mapaEmociones = {
-            happy:     () => 'feliz',
-            sad:       () => 'triste',
-            angry:     () => generoUsuario === 'Hombre' ? 'enojado'    : 'enojada',
-            fearful:   () => generoUsuario === 'Hombre' ? 'miedoso'    : 'miedosa',
-            disgusted: () => generoUsuario === 'Hombre' ? 'disgustado' : 'disgustada',
-            surprised: () => generoUsuario === 'Hombre' ? 'sorprendido': 'sorprendida',
-            neutral:   () => 'neutral',
-        };
-
-        let emocionFijada    = null;   // emoción que se está mostrando en pantalla
+        let emocionFijada    = null;
         let popupTimer       = null;
-        let enBloqueo        = false;  // true = no tocar nada hasta que pasen 30s
+        let enBloqueo        = false;
         let historialEdad    = [];
         const VENTANA_EDAD   = 10;
 
         async function iniciarAnalisis() {
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
-
-                // Si estamos en bloqueo, no analizar nada
                 if (enBloqueo) return;
 
                 const detecciones = await faceapi
@@ -658,17 +695,12 @@
 
                 const d = detecciones[0];
 
-                // ── Edad suavizada + corrección de sesgo ──
                 historialEdad.push(d.age);
                 if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
                 const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
                 const edadEstimada = Math.round(edadPromedio);
-                set('edad', edadEstimada + ' años');
-                set('edadDisplay', 'Edad: ' + edadEstimada);
 
-                // ── Detectar emoción con sistema de puntaje ponderado ──
                 const expr = d.expressions;
-
                 const angry     = expr.angry     || 0;
                 const sad       = expr.sad        || 0;
                 const fearful   = expr.fearful    || 0;
@@ -677,27 +709,15 @@
                 const surprised = expr.surprised  || 0;
                 const neutral   = expr.neutral    || 0;
 
-                // Ignorar si no hay ninguna señal mínima de expresión
                 const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
                 if (maxExpr < 0.10) return;
 
-                // Sueño: neutral muy alto con prácticamente sin expresión (umbral estricto)
                 const esSuenio = neutral > 0.85 && maxExpr < 0.08;
-
-                // Estrés: miedo y enojo presentes al mismo tiempo
                 const esEstres = fearful >= 0.12 && angry >= 0.10 && (fearful + angry) > 0.28;
-
-                // Puntaje ponderado para enojo:
-                // angry es dominante O disgusted es muy alto (cara de asco ≈ enojo)
                 const puntajeEnojo = angry * 1.5 + disgusted * 0.8;
-
-                // Puntaje ponderado para tristeza:
-                // sad es dominante O fearful moderado sin angry (miedo tranquilo ≈ tristeza)
                 const puntajeTristeza = sad * 1.5 + fearful * 0.5;
 
                 let emocion;
-                const suf = generoUsuario === 'Hombre' ? 'o' : 'a';
-
                 if (esSuenio) {
                     emocion = generoUsuario === 'Hombre' ? 'somnoliento' : 'somnolienta';
                 } else if (esEstres) {
@@ -716,27 +736,24 @@
                     emocion = 'neutral';
                 }
 
-                // ── Fijar emoción en pantalla y bloquear 30 segundos ──
                 emocionFijada = emocion;
                 enBloqueo     = true;
 
-                const display = emocion.charAt(0).toUpperCase() + emocion.slice(1);
-                set('emocion',       display);
-                set('emocion2',      display);
-                set('soon-titulo',   display);
+                mostrarResultado({ genero: generoUsuario, edad: edadEstimada, emocionClave: emocion });
 
-                // Recomendaciones según la emoción detectada
-                const recs = recomendaciones[emocion] || recomendaciones['neutral'];
-                document.getElementById('recomendaciones').innerHTML =
-                    recs.map(r => `<li>${r}</li>`).join('');
-
-                mostrarPopupEmocion(emocion, edadEstimada);
+                // Enviar a Firebase para que cualquier otro dispositivo abierto lo reciba al instante
+                estadoRef.set({
+                    genero: generoUsuario,
+                    edad: edadEstimada,
+                    emocionClave: emocion,
+                    timestamp: Date.now()
+                }).catch(err => console.error('Firebase (guardar):', err));
 
             }, 1200);
         }
 
         // ── Popup ──
-        function mostrarPopupEmocion(emocion, edad) {
+        function mostrarPopupEmocion(emocion, edad, genero) {
             const iconos = {
                 feliz:'😊', triste:'😢', enojado:'😠', enojada:'😠',
                 estresado:'😰', estresada:'😰', miedoso:'😨', miedosa:'😨',
@@ -744,45 +761,55 @@
                 neutral:'😐', somnoliento:'😴', somnolienta:'😴'
             };
             const popup = document.getElementById('popup-persona');
-            // La emoción va como título principal
             const display = emocion.charAt(0).toUpperCase() + emocion.slice(1);
             document.getElementById('popup-icon').textContent      = iconos[emocion] || '😐';
             document.getElementById('popup-tipo').textContent      = display;
             document.getElementById('popup-edad').textContent      = `Edad estimada: ${edad} años`;
-            document.getElementById('popup-genero-txt').textContent = generoUsuario || '';
+            document.getElementById('popup-genero-txt').textContent = genero || generoUsuario || '';
             popup.classList.add('show');
 
             if (popupTimer) clearTimeout(popupTimer);
             popupTimer = setTimeout(() => {
                 popup.classList.remove('show');
-                enBloqueo     = false;
+                if (esFuenteCamara) { enBloqueo = false; }
                 emocionFijada = null;
             }, 30000);
         }
 
-        // ── Fallback Flask — NO sobreescribe si hay bloqueo activo ──
-        function intentarFlask() {
-            if (enBloqueo) return;  // respetar el bloqueo de 30s
-            fetch('/resultado', { signal: AbortSignal.timeout(800) })
-                .then(r => r.json())
-                .then(d => {
-                    if (d.genero && d.genero !== 'N/A') {
-                        set('genero', d.genero); set('genero2', d.genero);
-                        set('edad', d.edad);
-                        set('emocion', d.emocion); set('emocion2', d.emocion);
-                        set('edadDisplay', 'Edad: ' + d.edad);
-                        const rec = document.getElementById('recomendaciones');
-                        rec.innerHTML = (d.recomendaciones && d.recomendaciones.length)
-                            ? d.recomendaciones.map(r => `<li>${r}</li>`).join('')
-                            : '<li>Sin recomendaciones</li>';
-                    }
-                }).catch(() => {});
-        }
+        // ── Escuchar Firebase: así es como la laptop recibe lo que detecta el celular (y viceversa) ──
+        let ultimoTimestampRemoto = 0;
+        estadoRef.on('value', (snap) => {
+            const badge = document.getElementById('sync-badge');
+            const texto = document.getElementById('sync-text');
+            badge.classList.remove('off');
+            texto.textContent = 'Vinculado';
+
+            const data = snap.val();
+            if (!data || !data.emocionClave) return;
+            if (data.timestamp === ultimoTimestampRemoto) return; // ya lo mostramos
+            ultimoTimestampRemoto = data.timestamp;
+
+            // Si ESTE dispositivo es el que tiene la cámara activa, ya se mostró localmente
+            // (evitamos re-disparar el popup dos veces sobre la misma detección).
+            if (esFuenteCamara) return;
+
+            mostrarResultado({
+                genero: data.genero,
+                edad: data.edad,
+                emocionClave: data.emocionClave,
+                disparaPopup: true
+            });
+        }, (err) => {
+            const badge = document.getElementById('sync-badge');
+            const texto = document.getElementById('sync-text');
+            badge.classList.add('off');
+            texto.textContent = 'Sin conexión a Firebase';
+            console.error('Firebase (conexión):', err);
+        });
 
         // ── Inicio ──
         cargarModelos();
         mostrarPopupGenero();
-        setInterval(intentarFlask, 2000);
 
         function mostrarPopupGenero() {
             document.getElementById('popup-genero').classList.add('show');
