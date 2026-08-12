@@ -589,7 +589,7 @@
         const estadoRef = db.ref('estado_actual');
 
         // ── Cada cuánto tiempo cambia la pregunta mostrada sobre el personaje ──
-        const DURACION_CICLO_PREGUNTAS_MS = 25000; // antes: 11000
+        const DURACION_CICLO_PREGUNTAS_MS = 45000; // antes: 11000
 
         // ── Recomendaciones generales por emoción (independientes de la pregunta) ──
         const recomendacionesPorEmocion = {
@@ -676,7 +676,7 @@
                 bubble.textContent = pregunta;
                 bubble.classList.add('show');
                 clearTimeout(bubble._timer);
-                bubble._timer = setTimeout(() => bubble.classList.remove('show'), Math.min(9000, DURACION_CICLO_PREGUNTAS_MS - 2000));
+                bubble._timer = setTimeout(() => bubble.classList.remove('show'), DURACION_CICLO_PREGUNTAS_MS - 2000);
             }
         }
 
