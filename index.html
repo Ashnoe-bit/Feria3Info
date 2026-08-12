@@ -590,6 +590,7 @@
 
         // ── Cada cuánto tiempo cambia la pregunta mostrada sobre el personaje ──
         const DURACION_CICLO_PREGUNTAS_MS = 45000; // antes: 11000
+        const DURACION_POPUP_MS = 60000; // cuánto dura visible el resultado detectado (antes: 5000, fijo)
 
         // ── Recomendaciones generales por emoción (independientes de la pregunta) ──
         const recomendacionesPorEmocion = {
@@ -950,7 +951,7 @@
                     mostrarPreguntaBase();
                 }
                 emocionFijada = null;
-            }, 5000);
+            }, DURACION_POPUP_MS);
         }
 
         // ── Escuchar Firebase: así es como la laptop recibe lo que detecta el celular (y viceversa) ──
