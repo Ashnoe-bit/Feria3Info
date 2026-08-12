@@ -109,10 +109,12 @@
         .char-zone img { height:clamp(200px, 32vw, 350px); width:auto; max-width:100%; object-fit:contain; object-position:bottom; display:block; transition:filter .5s ease, border-radius .3s ease; }
         /* Imagen base (personaje ilustrado suelto, fondo transparente): efecto luminoso original */
         .char-zone img.personaje-base { mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); }
-        /* Recortes reales con fondo de color: se muestran como tarjeta con marco, sin blend-mode */
+        /* Recortes reales con fondo removido: se muestran sin marco, con desvanecido suave
+           en los bordes para disimular cualquier resto de fondo que no se haya quitado del todo */
         .char-zone img.personaje-foto {
-            border-radius:16px; border:3px solid rgba(255,64,112,.55);
-            box-shadow:0 0 22px rgba(255,64,112,.45), 0 8px 24px rgba(0,0,0,.5);
+            filter:drop-shadow(-4px 4px 16px rgba(0,0,0,.5));
+            -webkit-mask-image:radial-gradient(ellipse 85% 88% at 50% 55%, #000 72%, transparent 100%);
+            mask-image:radial-gradient(ellipse 85% 88% at 50% 55%, #000 72%, transparent 100%);
         }
 
         /* ── Reacciones del personaje según la emoción detectada ── */
@@ -162,8 +164,7 @@
         .sv  { font-family:'Noto Serif',serif; font-size:1.08rem; color:#fff; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
         .svi { font-family:'Noto Serif',serif; font-size:.98rem; color:#fff; font-style:italic; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
         .sdiv { width:1px; background:rgba(255,64,112,.22); }
-        .rec-escenario { font-family:'Noto Serif',serif; font-style:italic; font-size:.68rem; line-height:1.3; color:rgba(255,190,210,.75); margin-top:4px; padding-left:2px; border-left:2px solid rgba(255,64,112,.4); padding-left:8px; min-height:0; }
-        .rec-list { list-style:none; margin-top:7px; }
+        .rec-list { list-style:none; margin-top:5px; }
         .rec-list li { font-size:.76rem; color:rgba(255,200,215,.88); padding:3px 0 3px 13px; position:relative; border-bottom:1px solid rgba(255,64,112,.08); }
         .rec-list li:last-child { border-bottom:none; }
         .rec-list li::before { content:'›'; position:absolute; left:0; color:#ff4070; font-size:.9rem; text-shadow:0 0 5px #ff4070; }
@@ -192,6 +193,37 @@
         @keyframes dBlink{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
 
         .footer { text-align:center; margin-top:7px; font-size:.56rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
+
+        /* ── Panel de captura de reacción ── */
+        .captura-inner { height:100%; display:flex; flex-direction:column; gap:8px; }
+        .captura-top { font-size:.56rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
+        .captura-body { display:flex; align-items:center; justify-content:center; gap:10px; flex:1; cursor:pointer; }
+        .captura-img {
+            width:90px; height:90px; object-fit:cover; border-radius:12px;
+            border:2px solid rgba(255,64,112,.5); box-shadow:0 0 10px rgba(255,64,112,.35);
+            background:#100005;
+        }
+        .captura-img.foto { transform:scaleX(-1); } /* la foto capturada se ve como espejo, igual que la cámara */
+        .captura-vs { font-family:'Cinzel',serif; color:#ff4070; font-size:1.1rem; text-shadow:0 0 8px #ff4070; }
+        .captura-caption { font-size:.68rem; color:rgba(255,200,215,.85); text-align:center; }
+        .captura-caption u { color:#ff90b0; cursor:pointer; }
+
+        /* ── Modal situación del personaje ── */
+        #popup-situacion {
+            position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.85);
+            z-index:1001; background:rgba(18,0,5,.96); border-radius:16px; padding:26px 30px;
+            text-align:center; opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease;
+            max-width:min(320px, 86vw);
+        }
+        #popup-situacion.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+        #popup-situacion::before {
+            content:''; position:absolute; inset:0; border-radius:16px; padding:2.5px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            box-shadow:0 0 20px rgba(255,64,112,.6); pointer-events:none;
+        }
+        #popup-situacion p { position:relative; z-index:2; font-family:'Noto Serif',serif; font-style:italic; font-size:.95rem; color:#fff; line-height:1.4; }
 
         .sync-badge {
             font-size:.5rem; letter-spacing:2px; text-transform:uppercase;
@@ -306,25 +338,20 @@
            RESPONSIVE — celulares chicos
            ══════════════════════════════════════════════ */
         @media (max-width:480px) {
-            body { padding:8px; padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+            body { padding:8px; }
             .main-title { font-size:1.15rem; letter-spacing:1.5px; }
             .kanji-col { display:none; }
 
-            .cam-outer { width:min(70vw, 280px); }
+            .cam-outer { width:min(88vw, 92vw); }
             .cam-label { font-size:.5rem; letter-spacing:3px; }
 
-            .char-zone { min-height:150px; flex-basis:100%; align-items:center; }
-            .char-zone img { height:clamp(120px, 34vw, 190px); }
-            .char-bubble { max-width:78vw; font-size:.72rem; padding:8px 12px; }
+            .char-zone { min-height:0; display:none; }
 
             .sl { font-size:.5rem; }
             .sv, .svi { font-size:.85rem; }
 
             .popup-genero { padding:24px 20px; min-width:auto; width:88vw; }
             .gen-btn { padding:9px 18px; font-size:.82rem; }
-
-            #popup-persona { left:8px; right:8px; bottom:8px; max-width:none; width:auto; transform-origin:bottom center; transform:scale(.85); }
-            #popup-persona.show { transform:scale(1); }
 
             .footer { font-size:.5rem; letter-spacing:2px; }
         }
@@ -334,44 +361,9 @@
         }
 
         @media (max-width:900px) and (orientation:landscape) {
-            body { padding:6px; justify-content:flex-start; }
-            .page-wrap { gap:5px; }
-            .main-title { font-size:.95rem; letter-spacing:1px; }
-            .nb-inner { padding:6px 8px; }
-            .caps-row, .ssym, .topbar { display:none; }
-
-            .hero-row { flex-wrap:nowrap; align-items:stretch; gap:6px; }
-            .main-content { flex-wrap:nowrap; align-items:center; gap:6px; }
-
-            .cam-zone { flex:0 0 auto; padding:0; gap:2px; }
-            .cam-outer { width:min(24vh, 140px); }
-            .cam-label { display:none; }
-            .cam-status { max-width:120px; }
-
-            .char-zone { flex:0 0 auto; min-height:0; min-width:80px; align-items:center; overflow:visible; }
-            .char-zone img { height:min(20vh, 140px); }
-            .char-bubble { display:none; }
-
-            .sidebar { flex:1; flex-direction:column; gap:5px; min-width:0; }
-            .scard .nb-inner { padding:5px 9px; }
-            .sl { font-size:.46rem; letter-spacing:2px; margin-bottom:1px; }
-            .sv, .svi { font-size:.72rem; }
-            .rec-list { margin-top:2px; }
-            .rec-list li { font-size:.6rem; padding:2px 0 2px 10px; }
-
-            .bot-row { gap:6px; }
-            .bl, .br { min-height:0; flex:1 1 0; }
-            .chat-kanji, .mbars { display:none; }
-            .chat-top, .chat-foot { font-size:.46rem; }
-            .soon-sub { font-size:.44rem; }
-            .soon-title { font-size:.8rem; }
-            .soon-edad { font-size:.6rem; }
-            .sdots { display:none; }
-
-            .footer { display:none; }
-
-            #popup-persona { bottom:6px; right:6px; padding:8px 12px; transform:scale(.7); transform-origin:bottom right; max-width:170px; }
-            #popup-persona.show { transform:scale(.85); }
+            .char-zone { display:none; }
+            .cam-outer { width:min(38vh, 260px); }
+            .bot-row { display:none; }
         }
     </style>
 </head>
@@ -498,7 +490,6 @@
                 <div class="neon-box scard" style="flex:1;">
                     <div class="nb-inner" style="padding:9px 11px;">
                         <div class="sl">Recomendaciones</div>
-                        <div id="recEscenario" class="rec-escenario"></div>
                         <ul class="rec-list" id="recomendaciones">
                             <li style="opacity:.4; font-style:italic;">Esperando camara...</li>
                         </ul>
@@ -525,7 +516,20 @@
                     </div>
                 </div>
             </div>
-            <div class="neon-box br">
+            <div class="neon-box br" id="panelCaptura" style="display:none;">
+                <div class="nb-inner">
+                    <div class="captura-inner">
+                        <div class="captura-top">∞ &nbsp; Tu reacción &nbsp; ∞</div>
+                        <div class="captura-body" id="capturaClickArea">
+                            <img id="capturaFoto" class="captura-img foto" alt="tu reacción">
+                            <div class="captura-vs">✕</div>
+                            <img id="capturaPersonaje" class="captura-img" alt="personaje">
+                        </div>
+                        <div class="captura-caption">Mira, este personaje también pasó por esto — <u>clic para ver</u></div>
+                    </div>
+                </div>
+            </div>
+            <div class="neon-box br" id="panelSoonTitulo">
                 <div class="nb-inner">
                     <div class="soon-inner">
                         <div class="soon-sub">Analizador Pro</div>
@@ -539,6 +543,13 @@
     </div>
 
     <div class="footer">∞ &nbsp; • &nbsp; Actualizando en tiempo real &nbsp; • &nbsp; ∞</div>
+
+    <canvas id="capturaCanvas" style="display:none;"></canvas>
+
+    <!-- MODAL: situación del personaje -->
+    <div id="popup-situacion">
+        <p id="popup-situacion-texto">—</p>
+    </div>
 
     <!-- POPUP GÉNERO -->
     <div id="popup-genero" class="popup-genero show">
@@ -588,110 +599,127 @@
         const db = firebase.database();
         const estadoRef = db.ref('estado_actual');
 
-        // ── Cada cuánto tiempo cambia la pregunta mostrada sobre el personaje ──
-        const DURACION_CICLO_PREGUNTAS_MS = 45000; // antes: 11000
-        const DURACION_POPUP_MS = 60000; // cuánto dura visible el resultado detectado (antes: 5000, fijo)
-
-        // ── Recomendaciones generales por emoción (independientes de la pregunta) ──
-        const recomendacionesPorEmocion = {
-            feliz:        ['Comparte esa alegría con alguien cercano', 'Aprovecha la energía positiva para crear algo', 'Guarda este momento para recordarlo después'],
-            triste:       ['Date permiso de sentir esto sin apurarte', 'Habla con alguien de confianza sobre cómo te sientes', 'Haz algo pequeño que te reconforte'],
-            enojado:      ['Respira profundo: 4s inhala, 4s exhala', 'Aléjate un momento antes de responder', 'Toma agua fría y baja la intensidad'],
-            estresado:    ['Ordena tus pendientes por prioridad', 'Haz una pausa corta lejos de la pantalla', 'Respira profundo antes de seguir'],
-            miedoso:      ['Respira: inhala 4s, mantén 4s, exhala 4s', 'Recuerda que estás en un lugar seguro', 'Enfócate en algo concreto que puedas ver ahora'],
-            sorprendido:  ['Tómate un segundo antes de reaccionar', 'Respira y analiza la situación con calma', 'Comparte la sorpresa con alguien cercano'],
-            disgustado:   ['Aléjate un momento de lo que te incomoda', 'Respira hondo antes de responder', 'Piensa en algo agradable para despejarte'],
-            neutral:      ['Buen momento para concentrarte en lo importante', 'Organiza tus ideas o haz una lista', 'Aprovecha la calma para aprender algo nuevo'],
-            somnoliento:  ['Toma un descanso de 10-20 min si puedes', 'Toma agua fría o estira el cuerpo', 'Sal a tomar aire fresco si es posible'],
+        const recomendaciones = {
+            'feliz':       [
+                'Comparte tu alegría con alguien especial 😊',
+                'Aprovecha esta energía para ser creativa',
+                'Anota qué te hizo feliz hoy para recordarlo'
+            ],
+            'triste':      [
+                'Está bien sentirte así, date un momento',
+                'Habla con alguien de confianza sobre lo que sientes',
+                'Escucha tu música favorita o ve algo que te guste'
+            ],
+            'enojado':     [
+                'Respira profundo: 4s inhala, 4s exhala',
+                'Aléjate un momento del motivo del enojo',
+                'Toma agua fría y cuenta hasta 10 despacio'
+            ],
+            'enojada':     [
+                'Respira profundo: 4s inhala, 4s exhala',
+                'Aléjate un momento del motivo del enojo',
+                'Toma agua fría y cuenta hasta 10 despacio'
+            ],
+            'estresado':   [
+                'Para todo y respira profundo ahora mismo',
+                'Haz una pausa de 5 minutos lejos de la pantalla',
+                'Escribe qué te preocupa y atácalo de a uno'
+            ],
+            'estresada':   [
+                'Para todo y respira profundo ahora mismo',
+                'Haz una pausa de 5 minutos lejos de la pantalla',
+                'Escribe qué te preocupa y atácalo de a uno'
+            ],
+            'miedoso':     [
+                'Respira: inhala 4s, mantén 4s, exhala 4s',
+                'Recuerda que estás en un lugar seguro',
+                'Enfócate en 5 cosas que puedes ver ahora mismo'
+            ],
+            'miedosa':     [
+                'Respira: inhala 4s, mantén 4s, exhala 4s',
+                'Recuerda que estás en un lugar seguro',
+                'Enfócate en 5 cosas que puedes ver ahora mismo'
+            ],
+            'sorprendido': [
+                'Tómate un momento antes de reaccionar',
+                'Respira y analiza la situación con calma',
+                'Pregúntate: ¿esto realmente me afecta?'
+            ],
+            'sorprendida': [
+                'Tómate un momento antes de reaccionar',
+                'Respira y analiza la situación con calma',
+                'Pregúntate: ¿esto realmente me afecta?'
+            ],
+            'disgustado':  [
+                'Aléjate de lo que te molesta por un momento',
+                'Respira hondo y piensa en algo agradable',
+                'Busca un ambiente diferente para despejarte'
+            ],
+            'disgustada':  [
+                'Aléjate de lo que te molesta por un momento',
+                'Respira hondo y piensa en algo agradable',
+                'Busca un ambiente diferente para despejarte'
+            ],
+            'neutral':     [
+                'Buen momento para concentrarte en lo importante',
+                'Organiza tus ideas o haz una lista de tareas',
+                'Aprovecha la calma para aprender algo nuevo'
+            ],
+            'somnoliento': [
+                'Toma un descanso de 10-20 minutos si puedes',
+                'Toma agua fría o estira el cuerpo un momento',
+                'Si puedes, sal a tomar aire fresco'
+            ],
+            'somnolienta': [
+                'Toma un descanso de 10-20 minutos si puedes',
+                'Toma agua fría o estira el cuerpo un momento',
+                'Si puedes, sal a tomar aire fresco'
+            ],
         };
-        recomendacionesPorEmocion.enojada     = recomendacionesPorEmocion.enojado;
-        recomendacionesPorEmocion.estresada   = recomendacionesPorEmocion.estresado;
-        recomendacionesPorEmocion.miedosa     = recomendacionesPorEmocion.miedoso;
-        recomendacionesPorEmocion.sorprendida = recomendacionesPorEmocion.sorprendido;
-        recomendacionesPorEmocion.disgustada  = recomendacionesPorEmocion.disgustado;
-        recomendacionesPorEmocion.somnolienta = recomendacionesPorEmocion.somnoliento;
 
-        // ── Preguntas genéricas ("¿Qué pasaría si...?", "¿Cómo reaccionarías si...?", etc.)
-        //    que se muestran ANTES de detectar la emoción, sobre el personaje base
-        //    (PERSONAJEE.png), para invitar a la persona a reaccionar. Cada una empieza
-        //    distinto a propósito. No están ligadas a una emoción: la emoción se
-        //    detecta a partir de la reacción real de la persona. ──
-        const preguntasGenericas = [
-            '¿Qué pasaría si mañana no sonara tu despertador?',
-            '¿Cómo reaccionarías si te llamaran con una noticia inesperada?',
-            '¿Qué harías si te ofrecieran unas vacaciones sorpresa?',
-            '¿Te imaginas si de repente se fuera la luz en tu casa?',
-            '¿Cómo te sentirías si cancelaran tus planes de último momento?',
-            '¿Qué dirías si te pidieran hablar frente a mucha gente ahora mismo?',
-            '¿Qué pasaría si encontraras dinero en la calle?',
-            '¿Cómo reaccionarías si perdieras tu celular por un día?',
-            '¿Qué harías si tuvieras que mudarte de ciudad mañana?',
-            '¿Te imaginas si un amigo te presentara a alguien nuevo hoy?',
-            '¿Cómo te sentirías si te llamaran para un trabajo que no esperabas?',
-            '¿Qué pasaría si te quedaras sin batería en un lugar desconocido?',
-        ];
+        // ── Preguntas de escenario ("¿cómo reaccionarías si...?"), ligadas a la emoción detectada ──
+        const preguntasReaccion = {
+            feliz:        ['¿Cómo reaccionarías si te dieran una sorpresa que amas?', '¿Qué harías si ganaras algo que querías mucho?', '¿Cómo reaccionarías si un amigo te dijera algo muy lindo?'],
+            triste:       ['¿Cómo reaccionarías si perdieras algo importante para ti?', '¿Qué harías si un plan que esperabas se cancelara?', '¿Cómo reaccionarías si alguien te decepcionara?'],
+            enojado:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
+            enojada:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
+            estresado:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
+            estresada:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
+            miedoso:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
+            miedosa:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
+            sorprendido:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
+            sorprendida:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
+            disgustado:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
+            disgustada:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
+            neutral:      ['¿Cómo reaccionarías si tuvieras un día libre sin planes?', '¿Qué harías si te dieran a elegir cualquier actividad ahora?', '¿Cómo reaccionarías si te ofrecieran empezar algo nuevo?'],
+            somnoliento:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
+            somnolienta:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
+        };
 
         // Imágenes reales del personaje por emoción (recortadas del collage que subiste).
         // Deben estar en tu repo dentro de la carpeta personaje_recortes/, junto al index.html.
         const imagenesPersonaje = {
-            feliz:        'feliz.png',
-            enojado:      'molesto.png',
-            enojada:      'molesto.png',
-            estresado:    'furioso.png',
-            estresada:    'furioso.png',
-            somnoliento:  'calmado.png',
-            somnolienta:  'calmado.png',
-            neutral:      'confiado.png',
-            sorprendido:  'confiado.png',
-            sorprendida:  'confiado.png',
-            triste:       'esperando.png',
-            miedoso:      'esperando.png',
-            miedosa:      'esperando.png',
-            disgustado:   'juguetona.png',
-            disgustada:   'juguetona.png',
+            feliz:        'personaje_recortes/panel_3_feliz.png',
+            enojado:      'personaje_recortes/panel_5_molesto.png',
+            enojada:      'personaje_recortes/panel_5_molesto.png',
+            estresado:    'personaje_recortes/panel_6_furioso.png',
+            estresada:    'personaje_recortes/panel_6_furioso.png',
+            somnoliento:  'personaje_recortes/panel_7_calmado.png',
+            somnolienta:  'personaje_recortes/panel_7_calmado.png',
+            neutral:      'personaje_recortes/panel_2_confiado.png',
+            sorprendido:  'personaje_recortes/panel_2_confiado.png',
+            sorprendida:  'personaje_recortes/panel_2_confiado.png',
+            triste:       'personaje_recortes/panel_1_esperando.png',
+            miedoso:      'personaje_recortes/panel_1_esperando.png',
+            miedosa:      'personaje_recortes/panel_1_esperando.png',
+            disgustado:   'personaje_recortes/panel_8_juguetona.png',
+            disgustada:   'personaje_recortes/panel_8_juguetona.png',
         };
         const IMAGEN_BASE_PERSONAJE = 'PERSONAJEE.png';
         let ultimaClaseEmocionImg = null;
 
-        // ── Muestra el personaje base (PERSONAJEE.png) con una pregunta genérica
-        //    encima, invitando a reaccionar. Se usa ANTES de detectar la emoción.
-        //    IMPORTANTE: también limpia el panel de resultados (emoción/edad de la
-        //    reacción anterior), para que no se quede "registrado" un resultado
-        //    viejo mientras se muestra una pregunta nueva. ──
-        let ultimaPreguntaMostrada = null;
+        let ultimaPreguntaMostrada = '';
 
-        function mostrarPreguntaBase() {
-            reiniciarPanelResultados();
-
-            const img = document.getElementById('charImg');
-            if (img) {
-                if (ultimaClaseEmocionImg) { img.classList.remove('emo-' + ultimaClaseEmocionImg); ultimaClaseEmocionImg = null; }
-                img.src = IMAGEN_BASE_PERSONAJE;
-                img.classList.add('personaje-base');
-                img.classList.remove('personaje-foto');
-            }
-            const pregunta = preguntasGenericas[Math.floor(Math.random() * preguntasGenericas.length)];
-            ultimaPreguntaMostrada = pregunta;
-            const bubble = document.getElementById('charBubble');
-            if (bubble) {
-                bubble.textContent = pregunta;
-                bubble.classList.add('show');
-                clearTimeout(bubble._timer);
-                bubble._timer = setTimeout(() => bubble.classList.remove('show'), DURACION_CICLO_PREGUNTAS_MS - 2000);
-            }
-        }
-
-        let cicloPreguntaInterval = null;
-        function iniciarCicloPreguntas() {
-            mostrarPreguntaBase();
-            if (cicloPreguntaInterval) clearInterval(cicloPreguntaInterval);
-            cicloPreguntaInterval = setInterval(() => {
-                if (!enBloqueo) mostrarPreguntaBase();
-            }, DURACION_CICLO_PREGUNTAS_MS);
-        }
-
-        // ── Cambia el personaje a la imagen de la emoción detectada (oculta la
-        //    burbuja de pregunta: ahora se muestra el resultado, no la pregunta) ──
         function reaccionarPersonaje(emocionClave) {
             const img = document.getElementById('charImg');
             if (img) {
@@ -714,32 +742,14 @@
             }
 
             const bubble = document.getElementById('charBubble');
-            if (bubble) { clearTimeout(bubble._timer); bubble.classList.remove('show'); }
-        }
-
-        // ── Vuelve el panel de resultados a estado "esperando", para que no
-        //    queden datos de la detección anterior mezclados con la nueva
-        //    pregunta cuando el ciclo reinicia. ──
-        function ph(id, text, fontSize) {
-            const e = document.getElementById(id);
-            if (!e) return;
-            e.textContent = text;
-            e.style.opacity = '.4';
-            e.style.fontStyle = 'italic';
-            if (fontSize) e.style.fontSize = fontSize;
-        }
-
-        function reiniciarPanelResultados() {
-            ph('edad', '—', '.8rem');
-            ph('emocion', 'Analizando...', '.8rem');
-            ph('emocion2', 'Analizando...', '.88rem');
-            ph('soon-titulo', 'Analizando...');
-            const edadDisp = document.getElementById('edadDisplay');
-            if (edadDisp) edadDisp.textContent = 'Edad: —';
-            const recEsc = document.getElementById('recEscenario');
-            if (recEsc) recEsc.textContent = '';
-            const recList = document.getElementById('recomendaciones');
-            if (recList) recList.innerHTML = '<li style="opacity:.4; font-style:italic;">Esperando tu reacción...</li>';
+            if (bubble) {
+                const opciones = preguntasReaccion[emocionClave] || preguntasReaccion['neutral'];
+                ultimaPreguntaMostrada = opciones[Math.floor(Math.random() * opciones.length)];
+                bubble.textContent = ultimaPreguntaMostrada;
+                bubble.classList.add('show');
+                clearTimeout(bubble._timer);
+                bubble._timer = setTimeout(() => bubble.classList.remove('show'), 8000);
+            }
         }
 
         let generoUsuario    = null;
@@ -755,10 +765,8 @@
             e.style.fontSize  = '';
         }
 
-        // ── Renderiza un resultado (local o recibido de Firebase) en toda la UI.
-        //    Las recomendaciones van acorde a la EMOCIÓN detectada; se muestra
-        //    también a qué pregunta reaccionó la persona, para dar contexto. ──
-        function mostrarResultado({ genero, edad, emocionClave, pregunta, disparaPopup = true }) {
+        // ── Renderiza un resultado (local o recibido de Firebase) en toda la UI ──
+        function mostrarResultado({ genero, edad, emocionClave, disparaPopup = true }) {
             const display = emocionClave.charAt(0).toUpperCase() + emocionClave.slice(1);
             if (genero) { set('genero', genero); set('genero2', genero); }
             set('edad', edad + ' años');
@@ -767,9 +775,7 @@
             set('emocion2', display);
             set('soon-titulo', display);
 
-            const recs = recomendacionesPorEmocion[emocionClave] || recomendacionesPorEmocion.neutral;
-            const textoPregunta = pregunta || ultimaPreguntaMostrada;
-            document.getElementById('recEscenario').textContent = textoPregunta ? `Reaccionaste a: “${textoPregunta}”` : '';
+            const recs = recomendaciones[emocionClave] || recomendaciones['neutral'];
             document.getElementById('recomendaciones').innerHTML =
                 recs.map(r => `<li>${r}</li>`).join('');
 
@@ -841,6 +847,36 @@
             }
         }
 
+        // ── Captura de reacción: 10s después de detectar la emoción, toma una foto del usuario
+        //    y la muestra junto a la imagen del personaje que "también pasó por esto" ──
+        let capturaTimer = null;
+
+        function capturarReaccion(emocionClave) {
+            if (!esFuenteCamara || vid.paused || vid.ended || !vid.videoWidth) return;
+
+            const canvas = document.getElementById('capturaCanvas');
+            canvas.width = vid.videoWidth;
+            canvas.height = vid.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+            const fotoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+            document.getElementById('capturaFoto').src = fotoDataUrl;
+            document.getElementById('capturaPersonaje').src =
+                imagenesPersonaje[emocionClave] || IMAGEN_BASE_PERSONAJE;
+            document.getElementById('panelCaptura').style.display = 'flex';
+            document.getElementById('capturaClickArea').dataset.emocion = emocionClave;
+        }
+
+        document.getElementById('capturaClickArea').addEventListener('click', () => {
+            document.getElementById('popup-situacion-texto').textContent =
+                ultimaPreguntaMostrada || 'Este personaje también ha pasado por esta emoción.';
+            document.getElementById('popup-situacion').classList.add('show');
+        });
+        document.getElementById('popup-situacion').addEventListener('click', () => {
+            document.getElementById('popup-situacion').classList.remove('show');
+        });
+
         let emocionFijada    = null;
         let popupTimer       = null;
         let enBloqueo        = false;
@@ -848,7 +884,6 @@
         const VENTANA_EDAD   = 10;
 
         async function iniciarAnalisis() {
-            iniciarCicloPreguntas();
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
                 if (enBloqueo) return;
@@ -910,18 +945,19 @@
                 emocionFijada = emocion;
                 enBloqueo     = true;
 
-                const preguntaAlMomento = ultimaPreguntaMostrada;
-                mostrarResultado({ genero: generoUsuario, edad: edadEstimada, emocionClave: emocion, pregunta: preguntaAlMomento });
+                mostrarResultado({ genero: generoUsuario, edad: edadEstimada, emocionClave: emocion });
 
-                // Enviar a Firebase (incluyendo a qué pregunta reaccionó) para que
-                // cualquier otro dispositivo abierto muestre el mismo contexto.
+                // Enviar a Firebase para que cualquier otro dispositivo abierto lo reciba al instante
                 estadoRef.set({
                     genero: generoUsuario,
                     edad: edadEstimada,
                     emocionClave: emocion,
-                    pregunta: preguntaAlMomento,
                     timestamp: Date.now()
                 }).catch(err => console.error('Firebase (guardar):', err));
+
+                // 10 segundos después, capturar cómo reaccionó el usuario a la pregunta
+                clearTimeout(capturaTimer);
+                capturaTimer = setTimeout(() => capturarReaccion(emocion), 10000);
 
             }, 1200);
         }
@@ -945,13 +981,9 @@
             if (popupTimer) clearTimeout(popupTimer);
             popupTimer = setTimeout(() => {
                 popup.classList.remove('show');
-                if (esFuenteCamara) {
-                    enBloqueo = false;
-                    reiniciarPanelResultados();
-                    mostrarPreguntaBase();
-                }
+                if (esFuenteCamara) { enBloqueo = false; }
                 emocionFijada = null;
-            }, DURACION_POPUP_MS);
+            }, 30000);
         }
 
         // ── Escuchar Firebase: así es como la laptop recibe lo que detecta el celular (y viceversa) ──
@@ -975,7 +1007,6 @@
                 genero: data.genero,
                 edad: data.edad,
                 emocionClave: data.emocionClave,
-                pregunta: data.pregunta,
                 disparaPopup: true
             });
         }, (err) => {
