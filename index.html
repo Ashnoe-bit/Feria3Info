@@ -708,6 +708,31 @@
             if (bubble) { clearTimeout(bubble._timer); bubble.classList.remove('show'); }
         }
 
+        // ── Vuelve el panel de resultados a estado "esperando", para que no
+        //    queden datos de la detección anterior mezclados con la nueva
+        //    pregunta cuando el ciclo reinicia. ──
+        function ph(id, text, fontSize) {
+            const e = document.getElementById(id);
+            if (!e) return;
+            e.textContent = text;
+            e.style.opacity = '.4';
+            e.style.fontStyle = 'italic';
+            if (fontSize) e.style.fontSize = fontSize;
+        }
+
+        function reiniciarPanelResultados() {
+            ph('edad', '—', '.8rem');
+            ph('emocion', 'Analizando...', '.8rem');
+            ph('emocion2', 'Analizando...', '.88rem');
+            ph('soon-titulo', 'Analizando...');
+            const edadDisp = document.getElementById('edadDisplay');
+            if (edadDisp) edadDisp.textContent = 'Edad: —';
+            const recEsc = document.getElementById('recEscenario');
+            if (recEsc) recEsc.textContent = '';
+            const recList = document.getElementById('recomendaciones');
+            if (recList) recList.innerHTML = '<li style="opacity:.4; font-style:italic;">Esperando tu reacción...</li>';
+        }
+
         let generoUsuario    = null;
         let modelos_cargados = false;
         let esFuenteCamara   = false; // true = este dispositivo tiene la cámara activa
@@ -913,6 +938,7 @@
                 popup.classList.remove('show');
                 if (esFuenteCamara) {
                     enBloqueo = false;
+                    reiniciarPanelResultados();
                     mostrarPreguntaBase();
                 }
                 emocionFijada = null;
