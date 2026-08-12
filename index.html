@@ -162,7 +162,8 @@
         .sv  { font-family:'Noto Serif',serif; font-size:1.08rem; color:#fff; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
         .svi { font-family:'Noto Serif',serif; font-size:.98rem; color:#fff; font-style:italic; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
         .sdiv { width:1px; background:rgba(255,64,112,.22); }
-        .rec-list { list-style:none; margin-top:5px; }
+        .rec-escenario { font-family:'Noto Serif',serif; font-style:italic; font-size:.68rem; line-height:1.3; color:rgba(255,190,210,.75); margin-top:4px; padding-left:2px; border-left:2px solid rgba(255,64,112,.4); padding-left:8px; min-height:0; }
+        .rec-list { list-style:none; margin-top:7px; }
         .rec-list li { font-size:.76rem; color:rgba(255,200,215,.88); padding:3px 0 3px 13px; position:relative; border-bottom:1px solid rgba(255,64,112,.08); }
         .rec-list li:last-child { border-bottom:none; }
         .rec-list li::before { content:'›'; position:absolute; left:0; color:#ff4070; font-size:.9rem; text-shadow:0 0 5px #ff4070; }
@@ -497,6 +498,7 @@
                 <div class="neon-box scard" style="flex:1;">
                     <div class="nb-inner" style="padding:9px 11px;">
                         <div class="sl">Recomendaciones</div>
+                        <div id="recEscenario" class="rec-escenario"></div>
                         <ul class="rec-list" id="recomendaciones">
                             <li style="opacity:.4; font-style:italic;">Esperando camara...</li>
                         </ul>
@@ -586,102 +588,97 @@
         const db = firebase.database();
         const estadoRef = db.ref('estado_actual');
 
-        const recomendaciones = {
-            'feliz':       [
-                'Comparte tu alegría con alguien especial 😊',
-                'Aprovecha esta energía para ser creativa',
-                'Anota qué te hizo feliz hoy para recordarlo'
+        // ── Escenarios: cada pregunta trae SUS PROPIAS recomendaciones, ligadas
+        //    directamente a esa situación y a la emoción detectada. Al detectar
+        //    una emoción se elige un escenario al azar dentro de esa emoción, y
+        //    la pregunta + las recomendaciones que se muestran son siempre del
+        //    mismo escenario (no se mezclan entre sí). ──
+        const escenarios = {
+            feliz: [
+                { pregunta:'¿Cómo reaccionarías si te dieran una sorpresa que amas?',
+                  recomendaciones:['Comparte esa alegría con quien te la dio', 'Guarda el momento en una foto o nota', 'Usa esa energía para hacer algo creativo hoy'] },
+                { pregunta:'¿Qué harías si ganaras algo que querías mucho?',
+                  recomendaciones:['Celebra el logro, te lo mereces', 'Cuéntaselo a alguien cercano', 'Anota qué hiciste bien para repetirlo'] },
+                { pregunta:'¿Cómo reaccionarías si un amigo te dijera algo muy lindo?',
+                  recomendaciones:['Agradece el gesto sin minimizarlo', 'Devuelve el cariño con un mensaje', 'Disfruta el momento sin apurarte'] },
             ],
-            'triste':      [
-                'Está bien sentirte así, date un momento',
-                'Habla con alguien de confianza sobre lo que sientes',
-                'Escucha tu música favorita o ve algo que te guste'
+            triste: [
+                { pregunta:'¿Cómo reaccionarías si perdieras algo importante para ti?',
+                  recomendaciones:['Date permiso de sentir la pérdida', 'Habla con alguien de confianza al respecto', 'Piensa en un paso pequeño para seguir'] },
+                { pregunta:'¿Qué harías si un plan que esperabas se cancelara?',
+                  recomendaciones:['Permítete la decepción antes de replantear', 'Busca una alternativa que te ilusione', 'Coméntalo con alguien, no te lo guardes'] },
+                { pregunta:'¿Cómo reaccionarías si alguien te decepcionara?',
+                  recomendaciones:['Exprésale con calma cómo te sentiste', 'No te culpes por haber confiado', 'Date tiempo antes de decidir qué hacer'] },
             ],
-            'enojado':     [
-                'Respira profundo: 4s inhala, 4s exhala',
-                'Aléjate un momento del motivo del enojo',
-                'Toma agua fría y cuenta hasta 10 despacio'
+            enojado: [
+                { pregunta:'¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?',
+                  recomendaciones:['Pide con calma tu turno para hablar', 'Respira antes de responder', 'Coméntalo directamente si sigue pasando'] },
+                { pregunta:'¿Qué harías si te culparan de algo que no hiciste?',
+                  recomendaciones:['Aclara los hechos con calma', 'Respira 4s antes de defenderte', 'Busca el momento correcto para hablarlo'] },
+                { pregunta:'¿Cómo reaccionarías si rompieran una promesa contigo?',
+                  recomendaciones:['Dile a la persona cómo te afectó', 'Toma agua fría o aire para bajar el enojo', 'Decide qué esperas de esa relación'] },
             ],
-            'enojada':     [
-                'Respira profundo: 4s inhala, 4s exhala',
-                'Aléjate un momento del motivo del enojo',
-                'Toma agua fría y cuenta hasta 10 despacio'
+            estresado: [
+                { pregunta:'¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?',
+                  recomendaciones:['Ordénalas por prioridad, una a la vez', 'Pide ayuda o más tiempo si lo necesitas', 'Haz pausas cortas de 5 min entre tareas'] },
+                { pregunta:'¿Qué harías si se te acabara el tiempo para algo importante?',
+                  recomendaciones:['Enfócate en lo esencial primero', 'Avisa con anticipación si no llegas', 'Respira antes de seguir, la prisa suma errores'] },
+                { pregunta:'¿Cómo reaccionarías si todo saliera mal a la vez?',
+                  recomendaciones:['Para y respira antes de reaccionar', 'Resuelve un problema a la vez', 'Pide apoyo, no tienes que resolverlo solo'] },
             ],
-            'estresado':   [
-                'Para todo y respira profundo ahora mismo',
-                'Haz una pausa de 5 minutos lejos de la pantalla',
-                'Escribe qué te preocupa y atácalo de a uno'
+            miedoso: [
+                { pregunta:'¿Cómo reaccionarías si escucharas un ruido extraño de noche?',
+                  recomendaciones:['Verifica con calma antes de asumir lo peor', 'Enciende una luz y observa tu entorno', 'Respira lento para bajar la alerta'] },
+                { pregunta:'¿Qué harías si te perdieras en un lugar desconocido?',
+                  recomendaciones:['Busca un punto de referencia cercano', 'Respira y evalúa antes de moverte', 'Usa el mapa del celular si lo tienes'] },
+                { pregunta:'¿Cómo reaccionarías si tuvieras que hablar en público de improviso?',
+                  recomendaciones:['Respira profundo antes de empezar', 'Enfócate en la idea principal', 'Un silencio breve también está bien'] },
             ],
-            'estresada':   [
-                'Para todo y respira profundo ahora mismo',
-                'Haz una pausa de 5 minutos lejos de la pantalla',
-                'Escribe qué te preocupa y atácalo de a uno'
+            sorprendido: [
+                { pregunta:'¿Cómo reaccionarías si te organizaran una fiesta sorpresa?',
+                  recomendaciones:['Tómate un segundo antes de reaccionar', 'Agradece el gesto de quien la organizó', 'Disfruta el momento sin pensar en lo que sigue'] },
+                { pregunta:'¿Qué harías si te encontraras con alguien que no veías hace años?',
+                  recomendaciones:['Dale espacio a la sorpresa, sin apuro', 'Aprovecha para ponerte al día con calma', 'Intercambien contacto si quieres seguir'] },
+                { pregunta:'¿Cómo reaccionarías si ganaras algo sin haberlo esperado?',
+                  recomendaciones:['Verifica bien antes de reaccionar', 'Comparte la noticia con alguien cercano', 'Piensa cómo aprovechar bien la sorpresa'] },
             ],
-            'miedoso':     [
-                'Respira: inhala 4s, mantén 4s, exhala 4s',
-                'Recuerda que estás en un lugar seguro',
-                'Enfócate en 5 cosas que puedes ver ahora mismo'
+            disgustado: [
+                { pregunta:'¿Cómo reaccionarías si alguien fuera injusto frente a ti?',
+                  recomendaciones:['Respira antes de responder', 'Exprésalo con calma en el momento indicado', 'Aléjate un momento si se te sube el enojo'] },
+                { pregunta:'¿Qué harías si vieras algo que va en contra de tus valores?',
+                  recomendaciones:['Identifica qué parte te incomoda exactamente', 'Habla con respeto si decides comentarlo', 'No todo tienes que resolverlo tú'] },
+                { pregunta:'¿Cómo reaccionarías si te pidieran hacer algo que no quieres?',
+                  recomendaciones:['Practica decir que no con seguridad', 'Explica tu motivo si lo consideras necesario', 'No te sientas mal por poner un límite'] },
             ],
-            'miedosa':     [
-                'Respira: inhala 4s, mantén 4s, exhala 4s',
-                'Recuerda que estás en un lugar seguro',
-                'Enfócate en 5 cosas que puedes ver ahora mismo'
+            neutral: [
+                { pregunta:'¿Cómo reaccionarías si tuvieras un día libre sin planes?',
+                  recomendaciones:['Haz algo que disfrutes sin apuro', 'Organiza pendientes pequeños atrasados', 'Descansa sin culpa, también lo necesitas'] },
+                { pregunta:'¿Qué harías si te dieran a elegir cualquier actividad ahora?',
+                  recomendaciones:['Elige algo que te dé curiosidad', 'Prueba algo nuevo, aunque sea pequeño', 'Usa esta calma para planear algo'] },
+                { pregunta:'¿Cómo reaccionarías si te ofrecieran empezar algo nuevo?',
+                  recomendaciones:['Evalúa con calma si te interesa de verdad', 'Pregunta lo que necesites antes de decidir', 'Aprovecha la calma actual para pensarlo'] },
             ],
-            'sorprendido': [
-                'Tómate un momento antes de reaccionar',
-                'Respira y analiza la situación con calma',
-                'Pregúntate: ¿esto realmente me afecta?'
-            ],
-            'sorprendida': [
-                'Tómate un momento antes de reaccionar',
-                'Respira y analiza la situación con calma',
-                'Pregúntate: ¿esto realmente me afecta?'
-            ],
-            'disgustado':  [
-                'Aléjate de lo que te molesta por un momento',
-                'Respira hondo y piensa en algo agradable',
-                'Busca un ambiente diferente para despejarte'
-            ],
-            'disgustada':  [
-                'Aléjate de lo que te molesta por un momento',
-                'Respira hondo y piensa en algo agradable',
-                'Busca un ambiente diferente para despejarte'
-            ],
-            'neutral':     [
-                'Buen momento para concentrarte en lo importante',
-                'Organiza tus ideas o haz una lista de tareas',
-                'Aprovecha la calma para aprender algo nuevo'
-            ],
-            'somnoliento': [
-                'Toma un descanso de 10-20 minutos si puedes',
-                'Toma agua fría o estira el cuerpo un momento',
-                'Si puedes, sal a tomar aire fresco'
-            ],
-            'somnolienta': [
-                'Toma un descanso de 10-20 minutos si puedes',
-                'Toma agua fría o estira el cuerpo un momento',
-                'Si puedes, sal a tomar aire fresco'
+            somnoliento: [
+                { pregunta:'¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?',
+                  recomendaciones:['Tómala si puedes, 15-20 min ayudan', 'Si no puedes, estírate o toma agua fría', 'Baja el ritmo un momento antes de seguir'] },
+                { pregunta:'¿Qué harías si tuvieras que quedarte despierto toda la noche?',
+                  recomendaciones:['Prioriza lo urgente y deja el resto', 'Toma pausas activas cada rato', 'Hidrátate bien, ayuda más que el café'] },
+                { pregunta:'¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?',
+                  recomendaciones:['Aprovecha ese tiempo extra para descansar', 'No sientas culpa, el descanso también rinde', 'Usa el resto del día con calma'] },
             ],
         };
+        // Las variantes femeninas comparten el mismo contenido que su par masculino
+        escenarios.enojada     = escenarios.enojado;
+        escenarios.estresada   = escenarios.estresado;
+        escenarios.miedosa     = escenarios.miedoso;
+        escenarios.sorprendida = escenarios.sorprendido;
+        escenarios.disgustada  = escenarios.disgustado;
+        escenarios.somnolienta = escenarios.somnoliento;
 
-        // ── Preguntas de escenario ("¿cómo reaccionarías si...?"), ligadas a la emoción detectada ──
-        const preguntasReaccion = {
-            feliz:        ['¿Cómo reaccionarías si te dieran una sorpresa que amas?', '¿Qué harías si ganaras algo que querías mucho?', '¿Cómo reaccionarías si un amigo te dijera algo muy lindo?'],
-            triste:       ['¿Cómo reaccionarías si perdieras algo importante para ti?', '¿Qué harías si un plan que esperabas se cancelara?', '¿Cómo reaccionarías si alguien te decepcionara?'],
-            enojado:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
-            enojada:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
-            estresado:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
-            estresada:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
-            miedoso:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
-            miedosa:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
-            sorprendido:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
-            sorprendida:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
-            disgustado:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
-            disgustada:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
-            neutral:      ['¿Cómo reaccionarías si tuvieras un día libre sin planes?', '¿Qué harías si te dieran a elegir cualquier actividad ahora?', '¿Cómo reaccionarías si te ofrecieran empezar algo nuevo?'],
-            somnoliento:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
-            somnolienta:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
-        };
+        function elegirEscenario(emocionClave) {
+            const lista = escenarios[emocionClave] || escenarios.neutral;
+            return lista[Math.floor(Math.random() * lista.length)];
+        }
 
         // Imágenes reales del personaje por emoción (recortadas del collage que subiste).
         // Deben estar en tu repo dentro de la carpeta personaje_recortes/, junto al index.html.
@@ -705,7 +702,7 @@
         const IMAGEN_BASE_PERSONAJE = 'PERSONAJEE.png';
         let ultimaClaseEmocionImg = null;
 
-        function reaccionarPersonaje(emocionClave) {
+        function reaccionarPersonaje(emocionClave, pregunta) {
             const img = document.getElementById('charImg');
             if (img) {
                 if (ultimaClaseEmocionImg) img.classList.remove('emo-' + ultimaClaseEmocionImg);
@@ -727,9 +724,8 @@
             }
 
             const bubble = document.getElementById('charBubble');
-            if (bubble) {
-                const opciones = preguntasReaccion[emocionClave] || preguntasReaccion['neutral'];
-                bubble.textContent = opciones[Math.floor(Math.random() * opciones.length)];
+            if (bubble && pregunta) {
+                bubble.textContent = pregunta;
                 bubble.classList.add('show');
                 clearTimeout(bubble._timer);
                 bubble._timer = setTimeout(() => bubble.classList.remove('show'), 8000);
@@ -749,8 +745,10 @@
             e.style.fontSize  = '';
         }
 
-        // ── Renderiza un resultado (local o recibido de Firebase) en toda la UI ──
-        function mostrarResultado({ genero, edad, emocionClave, disparaPopup = true }) {
+        // ── Renderiza un resultado (local o recibido de Firebase) en toda la UI.
+        //    Elige UN escenario (pregunta + sus propias recomendaciones) para que
+        //    todo lo que se muestra esté ligado a la misma situación y emoción. ──
+        function mostrarResultado({ genero, edad, emocionClave, escenario, disparaPopup = true }) {
             const display = emocionClave.charAt(0).toUpperCase() + emocionClave.slice(1);
             if (genero) { set('genero', genero); set('genero2', genero); }
             set('edad', edad + ' años');
@@ -759,11 +757,13 @@
             set('emocion2', display);
             set('soon-titulo', display);
 
-            const recs = recomendaciones[emocionClave] || recomendaciones['neutral'];
-            document.getElementById('recomendaciones').innerHTML =
-                recs.map(r => `<li>${r}</li>`).join('');
+            const esc = escenario || elegirEscenario(emocionClave);
 
-            reaccionarPersonaje(emocionClave);
+            document.getElementById('recEscenario').textContent = esc.pregunta;
+            document.getElementById('recomendaciones').innerHTML =
+                esc.recomendaciones.map(r => `<li>${r}</li>`).join('');
+
+            reaccionarPersonaje(emocionClave, esc.pregunta);
 
             if (disparaPopup) mostrarPopupEmocion(emocionClave, edad, genero);
         }
@@ -899,13 +899,17 @@
                 emocionFijada = emocion;
                 enBloqueo     = true;
 
-                mostrarResultado({ genero: generoUsuario, edad: edadEstimada, emocionClave: emocion });
+                const escenarioElegido = elegirEscenario(emocion);
+                mostrarResultado({ genero: generoUsuario, edad: edadEstimada, emocionClave: emocion, escenario: escenarioElegido });
 
-                // Enviar a Firebase para que cualquier otro dispositivo abierto lo reciba al instante
+                // Enviar a Firebase (incluyendo el escenario elegido) para que
+                // cualquier otro dispositivo abierto muestre exactamente la misma
+                // pregunta y recomendaciones, no una elegida al azar de nuevo.
                 estadoRef.set({
                     genero: generoUsuario,
                     edad: edadEstimada,
                     emocionClave: emocion,
+                    escenario: escenarioElegido,
                     timestamp: Date.now()
                 }).catch(err => console.error('Firebase (guardar):', err));
 
@@ -957,6 +961,7 @@
                 genero: data.genero,
                 edad: data.edad,
                 emocionClave: data.emocionClave,
+                escenario: data.escenario,
                 disparaPopup: true
             });
         }, (err) => {
