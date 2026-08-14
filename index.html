@@ -898,17 +898,23 @@
             historialCandidatos = [];
             esperandoReaccion = true;
             clearTimeout(timerEsperandoReaccion);
-            timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 3500);
+            timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 2000);
         }
 
+        // TIEMPO_CICLO_PREGUNTA: cuánto dura cada pregunta en pantalla antes de
+        // cambiar sola si nadie reaccionó todavía. Se subió de 11s a 18s porque
+        // antes cambiaba la pregunta (y reseteaba lo detectado) antes de que
+        // hubiera tiempo real de confirmar una expresión sostenida.
+        const TIEMPO_CICLO_PREGUNTA = 18000;
         let cicloPreguntaInterval = null;
-        function iniciarCicloPreguntas() {
+        function reiniciarCicloPreguntas() {
             mostrarPreguntaBase();
             if (cicloPreguntaInterval) clearInterval(cicloPreguntaInterval);
             cicloPreguntaInterval = setInterval(() => {
                 if (!enBloqueo) mostrarPreguntaBase();
-            }, 11000);
+            }, TIEMPO_CICLO_PREGUNTA);
         }
+        function iniciarCicloPreguntas() { reiniciarCicloPreguntas(); }
 
         // ── Cambia el personaje a la imagen de la emoción detectada (ya reaccionó
         //    a la pregunta que se mostró antes; oculta la burbuja de pregunta) ──
@@ -1100,7 +1106,7 @@
             const panelCap = document.getElementById('panelCaptura');
             if (panelCap) panelCap.style.display = 'none';
             emocionFijada = null;
-            mostrarPreguntaBase();
+            reiniciarCicloPreguntas(); // pregunta nueva + reinicia el temporizador del ciclo, sin duplicarlo
         }
 
         document.getElementById('pr-carta').addEventListener('click', () => {
@@ -1160,7 +1166,7 @@
                 const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
 
                 let candidato = null;
-                if (maxExpr >= 0.15) {
+                if (maxExpr >= 0.12) {
                     const esSuenio = neutral > 0.85 && maxExpr < 0.08;
                     const esEstres = fearful >= 0.12 && angry >= 0.10 && (fearful + angry) > 0.28;
                     const puntajeEnojo = angry * 1.5 + disgusted * 0.8;
@@ -1185,13 +1191,22 @@
                     }
                 }
 
-                historialCandidatos.push(candidato);
-                if (historialCandidatos.length > VENTANA_CONFIRMACION) historialCandidatos.shift();
+                // Expresión clara/fuerte (>=0.40): se confirma de una vez, sin esperar
+                // una segunda lectura igual, para no perder reacciones marcadas.
+                const esExpresionClara = maxExpr >= 0.40 && candidato;
 
-                const confirmada =
-                    historialCandidatos.length === VENTANA_CONFIRMACION &&
-                    historialCandidatos.every(c => c === historialCandidatos[0]) &&
-                    historialCandidatos[0];
+                let confirmada = false;
+                if (esExpresionClara) {
+                    confirmada = candidato;
+                    historialCandidatos = [];
+                } else {
+                    historialCandidatos.push(candidato);
+                    if (historialCandidatos.length > VENTANA_CONFIRMACION) historialCandidatos.shift();
+                    confirmada =
+                        historialCandidatos.length === VENTANA_CONFIRMACION &&
+                        historialCandidatos.every(c => c === historialCandidatos[0]) &&
+                        historialCandidatos[0];
+                }
 
                 if (!confirmada) return; // aún no se sostiene lo suficiente, seguimos esperando
 
