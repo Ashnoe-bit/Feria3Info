@@ -739,9 +739,14 @@
         let ultimaClaseEmocionImg = null;
 
         let ultimaPreguntaMostrada = '';
+        let esperandoReaccion = false; // true mientras se le da tiempo a la persona de LEER la pregunta antes de analizar su cara
+        let timerEsperandoReaccion = null;
 
         // ── Muestra el personaje base con una pregunta genérica encima, invitando
-        //    a reaccionar. Se usa ANTES de detectar la emoción. ──
+        //    a reaccionar. Se usa ANTES de detectar la emoción. Durante los primeros
+        //    segundos NO se analiza la cara todavía, para darle tiempo real a la
+        //    persona de leer la pregunta y reaccionar — así no aparecen datos de
+        //    la nada antes de que haya reaccionado. ──
         function mostrarPreguntaBase() {
             const img = document.getElementById('charImg');
             if (img) {
@@ -758,6 +763,11 @@
                 clearTimeout(bubble._timer);
                 bubble._timer = setTimeout(() => bubble.classList.remove('show'), 9000);
             }
+
+            historialCandidatos = [];
+            esperandoReaccion = true;
+            clearTimeout(timerEsperandoReaccion);
+            timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 3500);
         }
 
         let cicloPreguntaInterval = null;
@@ -942,6 +952,7 @@
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
                 if (enBloqueo) return;
+                if (esperandoReaccion) return; // todavía dándole tiempo de leer y reaccionar a la pregunta
 
                 const detecciones = await faceapi
                     .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.4 }))
