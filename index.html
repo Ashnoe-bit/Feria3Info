@@ -697,10 +697,29 @@
             somnolienta:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
         };
 
+        // ── Preguntas genéricas ("¿Qué pasaría si...?", "¿Cómo reaccionarías si...?"), que
+        //    se muestran ANTES de que la persona reaccione, sobre el personaje base
+        //    (PERSONAJEE.png). No están ligadas a una emoción todavía — la emoción se
+        //    detecta después, a partir de la reacción real de la persona a la pregunta.
+        //    La captura de "tu reacción" se toma después, ya reaccionando a esta pregunta. ──
+        const preguntasGenericas = [
+            '¿Qué pasaría si mañana no sonara tu despertador?',
+            '¿Cómo reaccionarías si te llamaran con una noticia inesperada?',
+            '¿Qué harías si te ofrecieran unas vacaciones sorpresa?',
+            '¿Te imaginas si de repente se fuera la luz en tu casa?',
+            '¿Cómo te sentirías si cancelaran tus planes de último momento?',
+            '¿Qué dirías si te pidieran hablar frente a mucha gente ahora mismo?',
+            '¿Qué pasaría si encontraras dinero en la calle?',
+            '¿Cómo reaccionarías si perdieras tu celular por un día?',
+            '¿Qué harías si tuvieras que mudarte de ciudad mañana?',
+            '¿Te imaginas si un amigo te presentara a alguien nuevo hoy?',
+            '¿Cómo te sentirías si te llamaran para un trabajo que no esperabas?',
+            '¿Qué pasaría si te quedaras sin batería en un lugar desconocido?',
+        ];
+
         // Imágenes reales del personaje por emoción (recortadas del collage que subiste).
         // Deben estar en tu repo dentro de la carpeta personaje_recortes/, junto al index.html.
-        const imagenesPersonaje = {
-            feliz:        'personaje_recortes/panel_3_feliz.png',
+        const imagenesPersonaje = {            feliz:        'personaje_recortes/panel_3_feliz.png',
             enojado:      'personaje_recortes/panel_5_molesto.png',
             enojada:      'personaje_recortes/panel_5_molesto.png',
             estresado:    'personaje_recortes/panel_6_furioso.png',
@@ -721,6 +740,37 @@
 
         let ultimaPreguntaMostrada = '';
 
+        // ── Muestra el personaje base con una pregunta genérica encima, invitando
+        //    a reaccionar. Se usa ANTES de detectar la emoción. ──
+        function mostrarPreguntaBase() {
+            const img = document.getElementById('charImg');
+            if (img) {
+                if (ultimaClaseEmocionImg) { img.classList.remove('emo-' + ultimaClaseEmocionImg); ultimaClaseEmocionImg = null; }
+                img.src = IMAGEN_BASE_PERSONAJE;
+                img.classList.add('personaje-base');
+                img.classList.remove('personaje-foto');
+            }
+            ultimaPreguntaMostrada = preguntasGenericas[Math.floor(Math.random() * preguntasGenericas.length)];
+            const bubble = document.getElementById('charBubble');
+            if (bubble) {
+                bubble.textContent = ultimaPreguntaMostrada;
+                bubble.classList.add('show');
+                clearTimeout(bubble._timer);
+                bubble._timer = setTimeout(() => bubble.classList.remove('show'), 9000);
+            }
+        }
+
+        let cicloPreguntaInterval = null;
+        function iniciarCicloPreguntas() {
+            mostrarPreguntaBase();
+            if (cicloPreguntaInterval) clearInterval(cicloPreguntaInterval);
+            cicloPreguntaInterval = setInterval(() => {
+                if (!enBloqueo) mostrarPreguntaBase();
+            }, 11000);
+        }
+
+        // ── Cambia el personaje a la imagen de la emoción detectada (ya reaccionó
+        //    a la pregunta que se mostró antes; oculta la burbuja de pregunta) ──
         function reaccionarPersonaje(emocionClave) {
             const img = document.getElementById('charImg');
             if (img) {
@@ -743,14 +793,7 @@
             }
 
             const bubble = document.getElementById('charBubble');
-            if (bubble) {
-                const opciones = preguntasReaccion[emocionClave] || preguntasReaccion['neutral'];
-                ultimaPreguntaMostrada = opciones[Math.floor(Math.random() * opciones.length)];
-                bubble.textContent = ultimaPreguntaMostrada;
-                bubble.classList.add('show');
-                clearTimeout(bubble._timer);
-                bubble._timer = setTimeout(() => bubble.classList.remove('show'), 8000);
-            }
+            if (bubble) { clearTimeout(bubble._timer); bubble.classList.remove('show'); }
         }
 
         let generoUsuario    = null;
@@ -895,6 +938,7 @@
         const VENTANA_CONFIRMACION = 2;
 
         async function iniciarAnalisis() {
+            iniciarCicloPreguntas();
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
                 if (enBloqueo) return;
@@ -1009,7 +1053,12 @@
             if (popupTimer) clearTimeout(popupTimer);
             popupTimer = setTimeout(() => {
                 popup.classList.remove('show');
-                if (esFuenteCamara) { enBloqueo = false; }
+                if (esFuenteCamara) {
+                    enBloqueo = false;
+                    const panelCap = document.getElementById('panelCaptura');
+                    if (panelCap) panelCap.style.display = 'none';
+                    mostrarPreguntaBase();
+                }
                 emocionFijada = null;
             }, 30000);
         }
