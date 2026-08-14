@@ -195,7 +195,7 @@
 
         .footer { text-align:center; margin-top:7px; font-size:.56rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
 
-        /* ── Panel de captura de reacción ── */
+        /* ── Panel de captura de reacción (miniatura) ── */
         .captura-inner { height:100%; display:flex; flex-direction:column; gap:8px; }
         .captura-top { font-size:.56rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
         .captura-body { display:flex; align-items:center; justify-content:center; gap:10px; flex:1; cursor:pointer; }
@@ -209,22 +209,52 @@
         .captura-caption { font-size:.68rem; color:rgba(255,200,215,.85); text-align:center; }
         .captura-caption u { color:#ff90b0; cursor:pointer; }
 
-        /* ── Modal situación del personaje ── */
-        #popup-situacion {
+        /* ── MODAL GRANDE: "TU REACCIÓN" (se abre sola o al tocar la miniatura) ── */
+        #popup-reaccion {
             position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.85);
-            z-index:1001; background:rgba(18,0,5,.96); border-radius:16px; padding:26px 30px;
+            z-index:1001; background:rgba(16,0,4,.97); border-radius:18px; padding:22px 26px;
             text-align:center; opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease;
-            max-width:min(320px, 86vw);
+            max-width:min(420px, 92vw); width:100%;
         }
-        #popup-situacion.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
-        #popup-situacion::before {
-            content:''; position:absolute; inset:0; border-radius:16px; padding:2.5px;
+        #popup-reaccion.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+        #popup-reaccion::before {
+            content:''; position:absolute; inset:0; border-radius:18px; padding:2.5px;
             background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
             -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
             -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
-            box-shadow:0 0 20px rgba(255,64,112,.6); pointer-events:none;
+            box-shadow:0 0 26px rgba(255,64,112,.65); pointer-events:none;
         }
-        #popup-situacion p { position:relative; z-index:2; font-family:'Noto Serif',serif; font-style:italic; font-size:.95rem; color:#fff; line-height:1.4; }
+        .pr-inner { position:relative; z-index:2; display:flex; flex-direction:column; gap:12px; }
+        .pr-title { font-family:'Cinzel',serif; font-weight:900; color:#fff; font-size:1.05rem; letter-spacing:3px; text-shadow:0 0 12px rgba(255,64,112,.9); }
+        .pr-pregunta { font-family:'Noto Serif',serif; font-style:italic; font-size:.82rem; color:rgba(255,210,222,.9); line-height:1.35; padding:0 4px; }
+        .pr-versus { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:4px; }
+        .pr-col { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; min-width:0; }
+        .pr-label { font-size:.5rem; letter-spacing:3px; color:rgba(255,150,170,.55); text-transform:uppercase; }
+        .pr-foto { width:100%; max-width:130px; aspect-ratio:1/1; object-fit:cover; border-radius:12px; border:2px solid rgba(255,64,112,.5); box-shadow:0 0 12px rgba(255,64,112,.35); transform:scaleX(-1); background:#100005; }
+        .pr-vs { font-family:'Cinzel',serif; color:#ff4070; font-size:1.2rem; font-weight:900; text-shadow:0 0 10px #ff4070; flex-shrink:0; }
+        .pr-carta { position:relative; width:100%; max-width:130px; aspect-ratio:1/1; cursor:pointer; perspective:800px; }
+        .pr-carta-cara {
+            position:absolute; inset:0; border-radius:12px; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:4px; padding:8px;
+            backface-visibility:hidden; transition:transform .5s ease;
+            border:2px solid rgba(255,64,112,.5); box-shadow:0 0 12px rgba(255,64,112,.35);
+            background:rgba(30,0,8,.9);
+        }
+        .pr-carta-back  { transform:rotateY(0deg); }
+        .pr-carta-front { transform:rotateY(180deg); }
+        .pr-carta.flipped .pr-carta-back  { transform:rotateY(180deg); }
+        .pr-carta.flipped .pr-carta-front { transform:rotateY(0deg); }
+        .pr-carta-icon { font-size:1.6rem; }
+        .pr-carta-hint { font-size:.56rem; letter-spacing:1px; color:rgba(255,200,215,.7); line-height:1.3; }
+        .pr-carta-nombre { font-family:'Cinzel',serif; font-size:.72rem; font-weight:700; color:#fff; letter-spacing:1px; text-transform:uppercase; text-shadow:0 0 8px rgba(255,64,112,.7); }
+        .pr-carta-cita { font-family:'Noto Serif',serif; font-style:italic; font-size:.66rem; color:rgba(255,210,222,.9); line-height:1.3; }
+        .pr-cerrar-btn {
+            align-self:center; margin-top:4px; padding:8px 22px; border-radius:24px; border:2px solid rgba(255,64,112,.5);
+            background:rgba(40,0,12,.8); color:#fff; font-family:'Raleway',sans-serif; font-size:.72rem; font-weight:700;
+            letter-spacing:2px; cursor:pointer; transition:all .2s;
+        }
+        .pr-cerrar-btn:hover { background:rgba(255,64,112,.25); box-shadow:0 0 14px rgba(255,64,112,.5); }
+        @media (max-width:480px){ #popup-reaccion{ padding:18px 16px; } .pr-foto,.pr-carta{ max-width:100px; } }
 
         .sync-badge {
             font-size:.5rem; letter-spacing:2px; text-transform:uppercase;
@@ -547,9 +577,33 @@
 
     <canvas id="capturaCanvas" style="display:none;"></canvas>
 
-    <!-- MODAL: situación del personaje -->
-    <div id="popup-situacion">
-        <p id="popup-situacion-texto">—</p>
+    <!-- MODAL GRANDE: "TU REACCIÓN" -->
+    <div id="popup-reaccion">
+        <div class="pr-inner">
+            <div class="pr-title">✨ TU REACCIÓN ✨</div>
+            <div class="pr-pregunta" id="pr-pregunta">—</div>
+            <div class="pr-versus">
+                <div class="pr-col">
+                    <div class="pr-label">✦ Tú</div>
+                    <img id="pr-foto" class="pr-foto" alt="tu reacción">
+                </div>
+                <div class="pr-vs">VS</div>
+                <div class="pr-col">
+                    <div class="pr-label">✦ Personaje</div>
+                    <div class="pr-carta" id="pr-carta">
+                        <div class="pr-carta-cara pr-carta-back">
+                            <div class="pr-carta-icon">🎴</div>
+                            <div class="pr-carta-hint">Toca la carta<br>para revelar</div>
+                        </div>
+                        <div class="pr-carta-cara pr-carta-front">
+                            <div class="pr-carta-nombre" id="pr-nombre">—</div>
+                            <div class="pr-carta-cita" id="pr-cita">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="pr-cerrar" class="pr-cerrar-btn">CERRAR ✕</button>
+        </div>
     </div>
 
     <!-- POPUP GÉNERO -->
@@ -678,48 +732,124 @@
             ],
         };
 
-        // ── Preguntas de escenario ("¿cómo reaccionarías si...?"), ligadas a la emoción detectada ──
-        const preguntasReaccion = {
-            feliz:        ['¿Cómo reaccionarías si te dieran una sorpresa que amas?', '¿Qué harías si ganaras algo que querías mucho?', '¿Cómo reaccionarías si un amigo te dijera algo muy lindo?'],
-            triste:       ['¿Cómo reaccionarías si perdieras algo importante para ti?', '¿Qué harías si un plan que esperabas se cancelara?', '¿Cómo reaccionarías si alguien te decepcionara?'],
-            enojado:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
-            enojada:      ['¿Cómo reaccionarías si alguien te interrumpiera todo el tiempo?', '¿Qué harías si te culparan de algo que no hiciste?', '¿Cómo reaccionarías si rompieran una promesa contigo?'],
-            estresado:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
-            estresada:    ['¿Cómo reaccionarías si tuvieras 3 entregas el mismo día?', '¿Qué harías si se te acabara el tiempo para algo importante?', '¿Cómo reaccionarías si todo saliera mal a la vez?'],
-            miedoso:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
-            miedosa:      ['¿Cómo reaccionarías si escucharas un ruido extraño de noche?', '¿Qué harías si te perdieras en un lugar desconocido?', '¿Cómo reaccionarías si tuvieras que hablar en público de improviso?'],
-            sorprendido:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
-            sorprendida:  ['¿Cómo reaccionarías si te organizaran una fiesta sorpresa?', '¿Qué harías si te encontraras con alguien que no veías hace años?', '¿Cómo reaccionarías si ganaras algo sin haberlo esperado?'],
-            disgustado:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
-            disgustada:   ['¿Cómo reaccionarías si alguien fuera injusto frente a ti?', '¿Qué harías si vieras algo que va en contra de tus valores?', '¿Cómo reaccionarías si te pidieran hacer algo que no quieres?'],
-            neutral:      ['¿Cómo reaccionarías si tuvieras un día libre sin planes?', '¿Qué harías si te dieran a elegir cualquier actividad ahora?', '¿Cómo reaccionarías si te ofrecieran empezar algo nuevo?'],
-            somnoliento:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
-            somnolienta:  ['¿Cómo reaccionarías si te ofrecieran una siesta ahora mismo?', '¿Qué harías si tuvieras que quedarte despierta toda la noche?', '¿Cómo reaccionarías si cancelaran tus planes y pudieras dormir más?'],
-        };
+        // ── Banco de escenarios: cada uno tiene una pregunta y, por cada emoción
+        //    posible, un texto de reacción + un personaje + una cita corta que se
+        //    revela en la tarjeta grande "TU REACCIÓN" (después de la captura). ──
+        function expandirGenero(reacciones) {
+            const pares = [
+                ['enojado','enojada'], ['sorprendido','sorprendida'],
+                ['miedoso','miedosa'], ['disgustado','disgustada'],
+                ['estresado','estresada'], ['somnoliento','somnolienta']
+            ];
+            pares.forEach(([m, f]) => {
+                if (reacciones[m] && !reacciones[f]) reacciones[f] = reacciones[m];
+                if (reacciones[f] && !reacciones[m]) reacciones[m] = reacciones[f];
+            });
+            return reacciones;
+        }
 
-        // ── Preguntas genéricas ("¿Qué pasaría si...?", "¿Cómo reaccionarías si...?"), que
-        //    se muestran ANTES de que la persona reaccione, sobre el personaje base
-        //    (PERSONAJEE.png). No están ligadas a una emoción todavía — la emoción se
-        //    detecta después, a partir de la reacción real de la persona a la pregunta.
-        //    La captura de "tu reacción" se toma después, ya reaccionando a esta pregunta. ──
-        const preguntasGenericas = [
-            '¿Qué pasaría si mañana no sonara tu despertador?',
-            '¿Cómo reaccionarías si te llamaran con una noticia inesperada?',
-            '¿Qué harías si te ofrecieran unas vacaciones sorpresa?',
-            '¿Te imaginas si de repente se fuera la luz en tu casa?',
-            '¿Cómo te sentirías si cancelaran tus planes de último momento?',
-            '¿Qué dirías si te pidieran hablar frente a mucha gente ahora mismo?',
-            '¿Qué pasaría si encontraras dinero en la calle?',
-            '¿Cómo reaccionarías si perdieras tu celular por un día?',
-            '¿Qué harías si tuvieras que mudarte de ciudad mañana?',
-            '¿Te imaginas si un amigo te presentara a alguien nuevo hoy?',
-            '¿Cómo te sentirías si te llamaran para un trabajo que no esperabas?',
-            '¿Qué pasaría si te quedaras sin batería en un lugar desconocido?',
+        const escenarios = [
+            {
+                pregunta: '¿Cómo reaccionarías si tuvieras que esperar durante años a alguien que quizá nunca vuelva?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Hua Cheng', texto:'Es comprensible que te afecte. Hua Cheng esperó durante 800 años por Xie Lian, sin abandonar su devoción por él.', cita:'Esperé 800 años. Habría esperado 800 más.' },
+                    sorprendido:  { personaje:'Hua Cheng', texto:'¿800 años? Es difícil imaginar una espera así. Hua Cheng convirtió esa espera en una de las partes más importantes de su historia.', cita:'El tiempo no borra lo que de verdad importa.' },
+                    feliz:        { personaje:'Hua Cheng', texto:'Imaginaste el mejor resultado: que esa persona regresara. Y tras 800 años, Hua Cheng finalmente se reencontró con Xie Lian.', cita:'Al final, volviste. Eso fue suficiente para mí.' },
+                    enojado:      { personaje:'Hua Cheng', texto:'Puede parecer injusto esperar tanto tiempo. Hua Cheng vivió siglos sin saber cuándo volvería a encontrarse con Xie Lian.', cita:'La espera dolió, pero nunca me hizo dudar.' },
+                    neutral:      { personaje:'Hua Cheng', texto:'Te lo tomaste con calma. Para Hua Cheng, sin embargo, esa espera ocupó siglos de su existencia.', cita:'Esperar también es una forma de amar.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo te sentirías si intentaras salvar a los demás y terminaran culpándote por lo ocurrido?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Xie Lian', texto:'Tiene sentido que te afecte. Xie Lian intentó ayudar a su pueblo durante la caída de Xianle, pero enfrentó rechazo y resentimiento.', cita:'Quise salvarlos. Terminé perdiéndolo todo por eso.' },
+                    enojado:      { personaje:'Xie Lian', texto:'Es comprensible que te enfade. Xie Lian también tuvo que soportar que sus intenciones fueran malinterpretadas.', cita:'Me culparon por intentar ayudar, y aun así lo volvería a hacer.' },
+                    miedoso:      { personaje:'Xie Lian', texto:'Una situación así puede hacerte dudar antes de volver a intervenir. Xie Lian vivió las consecuencias de ayudar en algo fuera de su control.', cita:'Aprendí a temer las consecuencias, no a dejar de intentarlo.' },
+                    sorprendido:  { personaje:'Xie Lian', texto:'Probablemente no esperarías que ayudar pudiera terminar así. La caída de Xianle cambió por completo la vida de Xie Lian.', cita:'Nunca imaginé que ayudar me costaría tanto.' },
+                    neutral:      { personaje:'Xie Lian', texto:'Parece que primero intentarías entender qué ocurrió. Xie Lian también enfrentó una situación sin una solución sencilla.', cita:'No todo tiene una respuesta fácil. Aprendí a aceptarlo.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si dos personas que fueron tus amigos terminaran alejándose de ti?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Feng Xin y Mu Qing', texto:'Es una reacción comprensible. Xie Lian, Feng Xin y Mu Qing estuvieron juntos mucho tiempo, pero las circunstancias terminaron separándolos.', cita:'El tiempo nos separó, pero lo que vivimos fue real.' },
+                    enojado:      { personaje:'Feng Xin y Mu Qing', texto:'Puede doler que una amistad termine por diferencias que parecen imposibles de solucionar. Su relación quedó marcada por esos conflictos.', cita:'A veces el orgullo pesó más que la amistad.' },
+                    sorprendido:  { personaje:'Feng Xin y Mu Qing', texto:'Quizás no esperarías que una amistad tan cercana pudiera terminar así. El tiempo y las experiencias cambiaron mucho su relación.', cita:'Nunca creí que algo tan fuerte pudiera romperse.' },
+                    neutral:      { personaje:'Feng Xin y Mu Qing', texto:'Tal vez piensas que algunas amistades simplemente toman caminos diferentes. Eso también ocurrió con quienes acompañaron a Xie Lian.', cita:'No todas las amistades duran para siempre, y está bien.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si de repente perdieras todo aquello que conocías?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Xie Lian', texto:'Es una situación muy difícil. Xie Lian perdió Xianle, su posición como príncipe y gran parte de lo que había conocido.', cita:'Perdí mi reino, mi título, casi todo. Seguí caminando igual.' },
+                    miedoso:      { personaje:'Xie Lian', texto:'Es normal que una situación así asuste. La caída de Xianle dejó a Xie Lian frente a un mundo completamente diferente.', cita:'No sabía qué venía después, y aun así seguí adelante.' },
+                    enojado:      { personaje:'Xie Lian', texto:'Perderlo todo sin poder evitarlo puede provocar mucha frustración.', cita:'Grité, lloré, y después me levanté de nuevo.' },
+                    sorprendido:  { personaje:'Xie Lian', texto:'Un cambio así puede sentirse imposible de procesar. La vida de Xie Lian cambió por completo después de la caída de Xianle.', cita:'Nunca imaginé cuánto podía cambiar todo en un instante.' },
+                    neutral:      { personaje:'Xie Lian', texto:'Parece que aceptarías el cambio antes de reaccionar. Xie Lian también tuvo que aprender a continuar tras perder su antigua vida.', cita:'Perder no significa terminar. Aprendí a empezar de nuevo.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si tuvieras que fingir que todo está bien mientras pasas por algo difícil?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Shi Qingxuan', texto:'Reconoces lo difícil que puede ser esconder lo que sientes. Shi Qingxuan mantuvo una actitud alegre mientras enfrentaba situaciones mucho más complicadas.', cita:'Sonreí por fuera mientras por dentro me derrumbaba.' },
+                    sorprendido:  { personaje:'Shi Qingxuan', texto:'A veces las personas que parecen estar mejor son las que están escondiendo más cosas. La historia de Shi Qingxuan muestra ese contraste.', cita:'Nadie notó lo que en realidad estaba cargando.' },
+                    enojado:      { personaje:'Shi Qingxuan', texto:'Quizás te molesta tener que fingir. Shi Qingxuan también enfrentó situaciones donde su alegría no podía resolver lo que ocurría.', cita:'Reír no siempre significa estar bien.' },
+                    neutral:      { personaje:'Shi Qingxuan', texto:'Parece que podrías mantener la calma aunque estés pasando por algo difícil.', cita:'A veces fingir calma es la única forma de seguir.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si descubrieras que alguien muy importante para ti te ocultó una parte enorme de su pasado?',
+                reacciones: expandirGenero({
+                    sorprendido:  { personaje:'Hua Cheng', texto:'Es comprensible. Hua Cheng mantiene gran parte de su pasado y su verdadera identidad en secreto cuando conoce a Xie Lian.', cita:'Te oculté mi pasado por miedo a perderte, no por no confiar en ti.' },
+                    enojado:      { personaje:'Hua Cheng', texto:'Puede sentirse como una traición descubrir un secreto tan importante. La identidad y el pasado de Hua Cheng permanecen ocultos durante buena parte de la historia.', cita:'Sé que dolió. Aun así, todo lo que sentí fue real.' },
+                    triste:       { personaje:'Hua Cheng', texto:'Quizás no te duele el secreto en sí, sino pensar que esa persona sintió que no podía contártelo.', cita:'No fue falta de confianza. Fue miedo a que me vieras distinto.' },
+                    neutral:      { personaje:'Hua Cheng', texto:'Parece que preferirías conocer primero sus razones antes de juzgarlo. Conocer el pasado de Hua Cheng cambia mucho la forma de entenderlo.', cita:'Conocer mi pasado no cambia lo que siento ahora.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si todos te juzgaran por algo que hiciste hace muchísimo tiempo?',
+                reacciones: expandirGenero({
+                    enojado:      { personaje:'Qi Rong', texto:'Es comprensible. Qi Rong es un ejemplo de cómo las acciones y la reputación pueden hacer que los demás tengan una imagen negativa de alguien.', cita:'Me juzgaron por lo que fui, no por lo que podría ser.' },
+                    triste:       { personaje:'Qi Rong', texto:'Puede ser difícil sentir que los demás solo recuerdan tus peores momentos.', cita:'Nadie pregunta por qué. Solo señalan lo que ya pasó.' },
+                    neutral:      { personaje:'Qi Rong', texto:'Parece que no dejarías que las opiniones de los demás definieran quién eres.', cita:'Lo que hice ayer no tiene por qué ser todo lo que soy.' },
+                    sorprendido:  { personaje:'Qi Rong', texto:'Quizás te sorprendería descubrir cuánto puede influir el pasado en la forma en que los demás ven a una persona.', cita:'No sabía que un solo momento pesaría tanto para siempre.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si alguien en quien confiabas desapareciera justo cuando más lo necesitabas?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Yin Yu', texto:'Es una situación dolorosa. Yin Yu vivió sentirse dejado atrás y las consecuencias de compararse con alguien a quien admiraba.', cita:'Esperé que alguien volviera por mí, y aprendí a seguir solo.' },
+                    enojado:      { personaje:'Yin Yu', texto:'Es normal sentir enojo cuando alguien de confianza no está cuando más lo necesitas.', cita:'Confié, y esa confianza no fue suficiente para retenerlo.' },
+                    miedoso:      { personaje:'Yin Yu', texto:'La idea de quedarse solo en un momento difícil puede ser aterradora.', cita:'El silencio después de que se fue fue lo peor.' },
+                    neutral:      { personaje:'Yin Yu', texto:'Parece que intentarías resolver la situación por tu cuenta antes de reaccionar.', cita:'Aprendí a no depender de que alguien más volviera.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si constantemente te compararan con alguien que parece ser mejor que tú?',
+                reacciones: expandirGenero({
+                    enojado:      { personaje:'Mu Qing', texto:'Es comprensible. Mu Qing pasó gran parte de su vida siendo comparado y enfrentando diferencias de posición y reconocimiento respecto a otras personas.', cita:'Me compararon toda la vida. Decidí construir mi propio camino.' },
+                    triste:       { personaje:'Mu Qing', texto:'Puede doler sentir que tus propios esfuerzos nunca parecen suficientes.', cita:'Di todo de mí, y aun así nunca fue suficiente para algunos.' },
+                    miedoso:      { personaje:'Mu Qing', texto:'Quizás te preocuparía no estar a la altura de las expectativas de los demás.', cita:'El miedo a no alcanzar nunca me dejó descansar.' },
+                    neutral:      { personaje:'Mu Qing', texto:'Parece que intentarías concentrarte en tu propio camino.', cita:'Dejé de compararme y empecé a medirme conmigo mismo.' },
+                    feliz:        { personaje:'Mu Qing', texto:'Tal vez convertirías la comparación en motivación para demostrar quién eres por ti mismo.', cita:'Cada comparación se convirtió en una razón más para esforzarme.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si, después de que todos dejaran de creer en ti, una sola persona siguiera haciéndolo?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Xie Lian y Hua Cheng', texto:'Parece que la situación te llegó. La relación entre Xie Lian y Hua Cheng está profundamente marcada por permanecer y creer incluso cuando los demás ya no lo hacen.', cita:'Cuando todos se fueron, tú te quedaste. Eso lo cambió todo.' },
+                    feliz:        { personaje:'Xie Lian y Hua Cheng', texto:'Esa reacción tiene sentido. Tener a alguien que siga creyendo en ti puede cambiar completamente una situación.', cita:'Una sola persona creyendo en mí fue suficiente para seguir.' },
+                    sorprendido:  { personaje:'Xie Lian y Hua Cheng', texto:'Quizás no esperarías que alguien siguiera confiando en ti cuando todos los demás se fueron.', cita:'No esperaba que alguien se quedara. Y aun así, ahí estabas.' },
+                    neutral:      { personaje:'Xie Lian y Hua Cheng', texto:'Parece que necesitarías tiempo para creer que alguien realmente se quedaría.', cita:'Tardé en confiar de nuevo, pero valió la pena esperar.' }
+                })
+            }
         ];
 
-        // Imágenes reales del personaje por emoción (recortadas del collage que subiste).
-        // Deben estar en tu repo dentro de la carpeta personaje_recortes/, junto al index.html.
-        const imagenesPersonaje = {            feliz:        'personaje_recortes/panel_3_feliz.png',
+        const REACCION_FALLBACK = { personaje:'Los personajes', texto:'Cada personaje también enfrentó momentos así, a su manera.', cita:'Cada quien enfrenta sus propias batallas, a su manera y a su tiempo.' };
+
+        // ── Imágenes reales del personaje por emoción (recortadas del collage que subiste). ──
+        const imagenesPersonaje = {
+            feliz:        'personaje_recortes/panel_3_feliz.png',
             enojado:      'personaje_recortes/panel_5_molesto.png',
             enojada:      'personaje_recortes/panel_5_molesto.png',
             estresado:    'personaje_recortes/panel_6_furioso.png',
@@ -738,10 +868,15 @@
         const IMAGEN_BASE_PERSONAJE = 'PERSONAJEE.png';
         let ultimaClaseEmocionImg = null;
 
+        let ultimoEscenario = null;
         let ultimaPreguntaMostrada = '';
+        let esperandoReaccion = false; // true mientras se le da tiempo a la persona de LEER la pregunta antes de analizar su cara
+        let timerEsperandoReaccion = null;
 
-        // ── Muestra el personaje base con una pregunta genérica encima, invitando
-        //    a reaccionar. Se usa ANTES de detectar la emoción. ──
+        // ── Muestra el personaje base con una pregunta del banco de escenarios encima,
+        //    invitando a reaccionar. Se usa ANTES de detectar la emoción. Durante los
+        //    primeros segundos NO se analiza la cara todavía, para darle tiempo real a
+        //    la persona de leer la pregunta y reaccionar. ──
         function mostrarPreguntaBase() {
             const img = document.getElementById('charImg');
             if (img) {
@@ -750,7 +885,8 @@
                 img.classList.add('personaje-base');
                 img.classList.remove('personaje-foto');
             }
-            ultimaPreguntaMostrada = preguntasGenericas[Math.floor(Math.random() * preguntasGenericas.length)];
+            ultimoEscenario = escenarios[Math.floor(Math.random() * escenarios.length)];
+            ultimaPreguntaMostrada = ultimoEscenario.pregunta;
             const bubble = document.getElementById('charBubble');
             if (bubble) {
                 bubble.textContent = ultimaPreguntaMostrada;
@@ -758,6 +894,11 @@
                 clearTimeout(bubble._timer);
                 bubble._timer = setTimeout(() => bubble.classList.remove('show'), 9000);
             }
+
+            historialCandidatos = [];
+            esperandoReaccion = true;
+            clearTimeout(timerEsperandoReaccion);
+            timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 3500);
         }
 
         let cicloPreguntaInterval = null;
@@ -892,8 +1033,12 @@
         }
 
         // ── Captura de reacción: 10s después de detectar la emoción, toma una foto del usuario
-        //    y la muestra junto a la imagen del personaje que "también pasó por esto" ──
+        //    y muestra la miniatura junto a la imagen del personaje que "también pasó por esto".
+        //    30s después de que aparece esa miniatura, se abre SOLA la tarjeta grande
+        //    "TU REACCIÓN" con la pregunta y la cita del personaje. ──
         let capturaTimer = null;
+        let ultimaFotoCapturada = null;
+        let timerAperturaReaccion = null;
 
         function capturarReaccion(emocionClave) {
             if (!esFuenteCamara || vid.paused || vid.ended || !vid.videoWidth) return;
@@ -904,22 +1049,64 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
             const fotoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            ultimaFotoCapturada = fotoDataUrl;
 
             document.getElementById('capturaFoto').src = fotoDataUrl;
             document.getElementById('capturaPersonaje').src =
                 imagenesPersonaje[emocionClave] || IMAGEN_BASE_PERSONAJE;
             document.getElementById('panelCaptura').style.display = 'flex';
             document.getElementById('capturaClickArea').dataset.emocion = emocionClave;
+
+            // 30 segundos después de mostrar la miniatura, se abre sola la tarjeta grande
+            clearTimeout(timerAperturaReaccion);
+            timerAperturaReaccion = setTimeout(() => abrirPopupReaccion(emocionClave), 30000);
         }
 
+        // Clic en la miniatura: abre la tarjeta grande de inmediato (sin esperar los 30s)
         document.getElementById('capturaClickArea').addEventListener('click', () => {
-            document.getElementById('popup-situacion-texto').textContent =
-                ultimaPreguntaMostrada || 'Este personaje también ha pasado por esta emoción.';
-            document.getElementById('popup-situacion').classList.add('show');
+            const emo = document.getElementById('capturaClickArea').dataset.emocion;
+            if (emo) abrirPopupReaccion(emo);
         });
-        document.getElementById('popup-situacion').addEventListener('click', () => {
-            document.getElementById('popup-situacion').classList.remove('show');
+
+        let timerCierreReaccion = null;
+
+        function abrirPopupReaccion(emocionClave) {
+            if (!ultimoEscenario) return;
+            const datos = ultimoEscenario.reacciones[emocionClave]
+                || ultimoEscenario.reacciones['neutral']
+                || REACCION_FALLBACK;
+
+            document.getElementById('pr-pregunta').textContent = ultimoEscenario.pregunta;
+            if (ultimaFotoCapturada) document.getElementById('pr-foto').src = ultimaFotoCapturada;
+            document.getElementById('pr-nombre').textContent = datos.personaje;
+            document.getElementById('pr-cita').textContent = '"' + datos.cita + '"';
+
+            const carta = document.getElementById('pr-carta');
+            carta.classList.remove('flipped');
+
+            document.getElementById('popup-reaccion').classList.add('show');
+
+            clearTimeout(timerAperturaReaccion);
+            clearTimeout(timerCierreReaccion);
+            // si nadie la cierra manualmente, se cierra sola y retoma el ciclo
+            timerCierreReaccion = setTimeout(cerrarPopupReaccion, 20000);
+        }
+
+        function cerrarPopupReaccion() {
+            document.getElementById('popup-reaccion').classList.remove('show');
+            clearTimeout(timerCierreReaccion);
+
+            enBloqueo = false;
+            const panelCap = document.getElementById('panelCaptura');
+            if (panelCap) panelCap.style.display = 'none';
+            emocionFijada = null;
+            mostrarPreguntaBase();
+        }
+
+        document.getElementById('pr-carta').addEventListener('click', () => {
+            document.getElementById('pr-carta').classList.toggle('flipped');
         });
+        document.getElementById('pr-cerrar').addEventListener('click', cerrarPopupReaccion);
 
         let emocionFijada    = null;
         let popupTimer       = null;
@@ -931,9 +1118,7 @@
         //    (que deja afuera a quien se expresa suave), o aceptar cualquier
         //    puntaje bajo (que dispara con cualquier ruido), se pide que la MISMA
         //    emoción aparezca en varias lecturas seguidas antes de darla por
-        //    válida. Así se adapta tanto a gestos sutiles (que se sostienen un
-        //    momento con puntajes moderados) como a gestos muy exagerados (que
-        //    igual se sostienen y confirman rápido, con puntajes altos). ──
+        //    válida. ──
         let historialCandidatos = [];
         const VENTANA_CONFIRMACION = 2;
 
@@ -942,6 +1127,7 @@
             setInterval(async () => {
                 if (!modelos_cargados || vid.paused || vid.ended) return;
                 if (enBloqueo) return;
+                if (esperandoReaccion) return; // todavía dándole tiempo de leer y reaccionar a la pregunta
 
                 const detecciones = await faceapi
                     .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.4 }))
@@ -973,8 +1159,6 @@
 
                 const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
 
-                // Puntajes moderados (no exigen una expresión enorme), la
-                // confiabilidad viene de sostenerla varias lecturas seguidas.
                 let candidato = null;
                 if (maxExpr >= 0.15) {
                     const esSuenio = neutral > 0.85 && maxExpr < 0.08;
@@ -1029,12 +1213,13 @@
 
                 // 10 segundos después, capturar cómo reaccionó el usuario a la pregunta
                 clearTimeout(capturaTimer);
-                capturaTimer = setTimeout(() => capturarReaccion(emocion), 800);
+                capturaTimer = setTimeout(() => capturarReaccion(emocion), 650);
 
             }, 1200);
         }
 
-        // ── Popup ──
+        // ── Popup pequeño de emoción (esquina inferior). Ahora solo informa unos
+        //    segundos; el reinicio completo del ciclo lo maneja cerrarPopupReaccion(). ──
         function mostrarPopupEmocion(emocion, edad, genero) {
             const iconos = {
                 feliz:'😊', triste:'😢', enojado:'😠', enojada:'😠',
@@ -1053,14 +1238,7 @@
             if (popupTimer) clearTimeout(popupTimer);
             popupTimer = setTimeout(() => {
                 popup.classList.remove('show');
-                if (esFuenteCamara) {
-                    enBloqueo = false;
-                    const panelCap = document.getElementById('panelCaptura');
-                    if (panelCap) panelCap.style.display = 'none';
-                    mostrarPreguntaBase();
-                }
-                emocionFijada = null;
-            }, 30000);
+            }, 4000);
         }
 
         // ── Escuchar Firebase: así es como la laptop recibe lo que detecta el celular (y viceversa) ──
