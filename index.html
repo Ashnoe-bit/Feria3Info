@@ -1040,8 +1040,7 @@
 
                 // 10 segundos después, capturar cómo reaccionó el usuario a la pregunta
                 clearTimeout(capturaTimer);
-                capturaTimer = setTimeout(() => capturarReaccion(emocion), 10000);
-
+                capturaTimer = setTimeout(() => capturarReaccion(emocion), 3000); // antes 10000
             }, 1200);
         }
 
