@@ -873,10 +873,10 @@
         let esperandoReaccion = false; // true mientras se le da tiempo a la persona de LEER la pregunta antes de analizar su cara
         let timerEsperandoReaccion = null;
 
-        // ── Muestra el personaje base con una pregunta del banco de escenarios encima,
+        /*Muestra el personaje base con una pregunta del banco de escenarios encima,
         //    invitando a reaccionar. Se usa ANTES de detectar la emoción. Durante los
         //    primeros segundos NO se analiza la cara todavía, para darle tiempo real a
-        //    la persona de leer la pregunta y reaccionar. ──
+        //    la persona de leer la pregunta y reaccionar. */
         function mostrarPreguntaBase() {
             const img = document.getElementById('charImg');
             if (img) {
@@ -901,10 +901,10 @@
             timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 2000);
         }
 
-        // TIEMPO_CICLO_PREGUNTA: cuánto dura cada pregunta en pantalla antes de
+        /* TIEMPO_CICLO_PREGUNTA: cuánto dura cada pregunta en pantalla antes de
         // cambiar sola si nadie reaccionó todavía. Se subió de 11s a 18s porque
         // antes cambiaba la pregunta (y reseteaba lo detectado) antes de que
-        // hubiera tiempo real de confirmar una expresión sostenida.
+         hubiera tiempo real de confirmar una expresión sostenida.*/
         const TIEMPO_CICLO_PREGUNTA = 18000;
         let cicloPreguntaInterval = null;
         function reiniciarCicloPreguntas() {
@@ -1228,7 +1228,7 @@
 
                 // 10 segundos después, capturar cómo reaccionó el usuario a la pregunta
                 clearTimeout(capturaTimer);
-                capturaTimer = setTimeout(() => capturarReaccion(emocion), 650);
+                capturaTimer = setTimeout(() => capturarReaccion(emocion), 800);
 
             }, 1200);
         }
