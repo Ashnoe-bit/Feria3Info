@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <title>Analizador de Emociones</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html { height:100%; }
+
+        body {
+            font-family:'Raleway',sans-serif;
+            min-height:100vh; min-height:100dvh; width:100vw;
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center;
+            padding:14px 20px; overflow-x:hidden;
+            position:relative;
+            background-color:#1e0008;
+            background-image:
+                radial-gradient(ellipse at 50% 50%, transparent 25%, rgba(6,0,2,.82) 100%),
+                radial-gradient(ellipse at 0%   32%, rgba(172,0,36,.75) 0%, transparent 34%),
+                radial-gradient(ellipse at 100% 32%, rgba(172,0,36,.75) 0%, transparent 34%),
+                radial-gradient(ellipse at 0%   68%, rgba(128,0,24,.58) 0%, transparent 30%),
+                radial-gradient(ellipse at 100% 68%, rgba(128,0,24,.58) 0%, transparent 30%),
+                repeating-linear-gradient( 45deg,rgba(185,0,40,.05) 0,rgba(185,0,40,.05) 1px,transparent 1px,transparent 24px),
+                repeating-linear-gradient(-45deg,rgba(185,0,40,.05) 0,rgba(185,0,40,.05) 1px,transparent 1px,transparent 24px);
+        }
+
+        .kanji-col { position:fixed; top:0; bottom:0; writing-mode:vertical-rl; font-size:1.3rem; color:rgba(165,0,35,.12); letter-spacing:14px; pointer-events:none; z-index:0; display:flex; align-items:center; padding:20px 0; }
+        .kanji-col.L { left:20px; } .kanji-col.R { right:20px; transform:rotate(180deg); }
+        .bgf { position:fixed; pointer-events:none; z-index:0; color:rgba(215,45,75,.18); font-size:2.2rem; filter:blur(.3px); }
+        .petal { position:fixed; pointer-events:none; z-index:0; color:rgba(255,110,140,.22); animation:petalFall linear infinite; }
+        @keyframes petalFall { 0%{transform:translateY(-30px) rotate(0deg);opacity:0;} 8%{opacity:1;} 92%{opacity:.3;} 100%{transform:translateY(101vh) rotate(540deg);opacity:0;} }
+
+        .page-wrap { position:relative; z-index:1; width:100%; max-width:1180px; display:flex; flex-direction:column; align-items:center; gap:9px; }
+        .main-title { font-family:'Cinzel',serif; font-size:clamp(1.3rem,3.2vw,2.8rem); font-weight:900; color:#fff; letter-spacing:clamp(3px,1.2vw,7px); text-transform:uppercase; text-align:center; text-shadow:0 0 14px rgba(255,64,112,.95),0 0 38px rgba(255,64,112,.5),2px 2px 8px rgba(0,0,0,.9); }
+
+        .hero-row { display:flex; gap:10px; width:100%; align-items:stretch; flex-wrap:wrap; }
+
+        @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+        @keyframes bSpin { to{--a:360deg;} }
+
+        .neon-box { position:relative; border-radius:12px; background:rgba(22,0,6,.6); }
+        .neon-box::before {
+            content:''; position:absolute; inset:0; border-radius:inherit; padding:2.5px;
+            background:linear-gradient(var(--a,0deg),#ff4070,#ff90b0,#c00030,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            animation:bSpin 4s linear infinite; z-index:0;
+            box-shadow:0 0 18px rgba(255,64,112,.55), 0 0 40px rgba(255,64,112,.22);
+        }
+        .neon-box::after { content:''; position:absolute; inset:0; border-radius:inherit; box-shadow:inset 0 0 40px rgba(140,0,28,.35),0 0 22px rgba(255,64,112,.14); pointer-events:none; z-index:0; }
+        .nb-inner { position:relative; z-index:1; padding:12px 16px; height:100%; }
+
+        .panel-grid {
+            position:absolute; inset:0; border-radius:12px; overflow:hidden; z-index:0; pointer-events:none;
+            background-image:
+                linear-gradient(rgba(255,179,215,.28) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,179,215,.28) 1px, transparent 1px);
+            background-size:70px 70px;
+        }
+
+        .topbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; position:relative; z-index:2; }
+        .tl { flex:1; height:2px; background:linear-gradient(90deg,transparent,#ff4070,transparent); box-shadow:0 0 6px #ff4070; }
+        .ts { color:#ff4070; font-size:.88rem; text-shadow:0 0 8px #ff4070; }
+        .td { width:7px; height:7px; background:#ff4070; border-radius:50%; box-shadow:0 0 8px #ff4070; }
+
+        .caps-row { display:flex; gap:8px; justify-content:center; margin-bottom:8px; position:relative; z-index:2; }
+        .cap { padding:3px 14px; border-radius:20px; background:rgba(20,0,5,.6); border:1px solid rgba(255,64,112,.45); font-size:.72rem; color:rgba(255,200,220,.85); letter-spacing:2px; box-shadow:0 0 8px rgba(255,64,112,.25); }
+
+        .ssym { position:absolute; display:flex; flex-direction:column; gap:9px; color:rgba(255,64,112,.38); font-size:.8rem; top:50%; transform:translateY(-50%); z-index:2; }
+        .ssym.L{left:7px;} .ssym.R{right:7px;}
+
+        .main-content { display:flex; position:relative; z-index:2; flex-wrap:wrap; }
+
+        .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 0 8px; min-width:0; }
+
+        .cam-outer { position:relative; width:clamp(200px, 42vw, 260px); aspect-ratio:1/1; }
+
+        .cam-ring { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%; }
+        .cr1 { width:100%; height:100%; border:2.5px solid rgba(255,64,112,.5); box-shadow:0 0 14px rgba(255,64,112,.3); animation:spinR 6s linear infinite; }
+        .cr2 { width:107%; height:107%; border:1.5px dashed rgba(255,64,112,.22); animation:spinL 10s linear infinite; }
+        .cr3 { width:114%; height:114%; border:1px solid rgba(255,64,112,.1); animation:spinR 16s linear infinite; }
+        @keyframes spinR { to{transform:translate(-50%,-50%) rotate(360deg);}  }
+        @keyframes spinL { to{transform:translate(-50%,-50%) rotate(-360deg);} }
+
+        .cam-svg { position:absolute; top:0; left:0; width:100%; height:100%; z-index:3; pointer-events:none; }
+
+        .corner-node { position:absolute; width:14px; height:14px; border-radius:50%; background:rgba(20,0,5,.8); border:2px solid #ff4070; box-shadow:0 0 10px #ff4070, inset 0 0 4px rgba(255,64,112,.4); z-index:4; }
+        .cn-tl{top:-7px;left:-7px;} .cn-tr{top:-7px;right:-7px;}
+        .cn-bl{bottom:-7px;left:-7px;} .cn-br{bottom:-7px;right:-7px;}
+
+        #videoStream {
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%) scaleX(-1);
+            width:92%; height:92%;
+            border-radius:50%; object-fit:cover; z-index:2; background:#100005;
+            clip-path:circle(50%);
+        }
+
+        .cam-label { font-size:.56rem; letter-spacing:5px; color:rgba(255,150,170,.5); text-transform:uppercase; text-align:center; }
+        .cam-status { font-size:.55rem; color:rgba(255,110,120,.6); text-align:center; letter-spacing:1px; display:none; max-width:220px; }
+        .cam-status.active { display:block; }
+        .ck { position:absolute; color:rgba(255,150,180,.5); font-size:.9rem; pointer-events:none; z-index:4; }
+
+        .char-zone { flex:1; position:relative; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; min-height:260px; min-width:160px; }
+        .char-zone img { height:clamp(200px, 32vw, 350px); width:auto; max-width:100%; object-fit:contain; object-position:bottom; display:block; transition:filter .5s ease, border-radius .3s ease; }
+        /* Imagen base (personaje ilustrado suelto, fondo transparente): efecto luminoso original */
+        .char-zone img.personaje-base { mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); }
+        /* Recortes reales con fondo removido: se muestran sin marco, con desvanecido suave
+           en los bordes para disimular cualquier resto de fondo que no se haya quitado del todo */
+        .char-zone img.personaje-foto {
+            filter:drop-shadow(-4px 4px 16px rgba(0,0,0,.5));
+            -webkit-mask-image:radial-gradient(ellipse 85% 88% at 50% 55%, #000 72%, transparent 100%);
+            mask-image:radial-gradient(ellipse 85% 88% at 50% 55%, #000 72%, transparent 100%);
+        }
+
+        /* ── Reacciones del personaje según la emoción detectada ── */
+        @keyframes reactBounce { 0%,100%{transform:translateY(0);} 30%{transform:translateY(-14px);} 50%{transform:translateY(0);} 65%{transform:translateY(-6px);} 80%{transform:translateY(0);} }
+        @keyframes reactShake  { 0%,100%{transform:translateX(0) rotate(0);} 20%{transform:translateX(-6px) rotate(-2deg);} 40%{transform:translateX(6px) rotate(2deg);} 60%{transform:translateX(-4px) rotate(-1deg);} 80%{transform:translateX(4px) rotate(1deg);} }
+        @keyframes reactDroop  { 0%{transform:translateY(0);} 100%{transform:translateY(6px);} }
+        @keyframes reactPulse  { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+        @keyframes reactWobble { 0%,100%{transform:rotate(0) scale(1);} 20%{transform:rotate(-4deg) scale(1.04);} 40%{transform:rotate(3deg) scale(.98);} 60%{transform:rotate(-3deg) scale(1.05);} 80%{transform:rotate(2deg) scale(1);} }
+
+        .char-zone img.emo-feliz       { animation:reactBounce 1.1s ease; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)) saturate(1.3) brightness(1.08); }
+        .char-zone img.emo-triste      { animation:reactDroop .8s ease forwards; filter:drop-shadow(-6px 0 20px rgba(80,80,190,.4)) saturate(.65) brightness(.85); }
+        .char-zone img.emo-enojado,
+        .char-zone img.emo-enojada     { animation:reactShake .5s ease; filter:drop-shadow(-6px 0 20px rgba(220,0,20,.6)) saturate(1.5) contrast(1.15); }
+        .char-zone img.emo-sorprendido,
+        .char-zone img.emo-sorprendida { animation:reactPulse .6s ease; filter:drop-shadow(-6px 0 20px rgba(255,210,0,.45)) brightness(1.15); }
+        .char-zone img.emo-estresado,
+        .char-zone img.emo-estresada   { animation:reactShake .6s ease 2; filter:drop-shadow(-6px 0 20px rgba(255,120,0,.4)) saturate(1.2); }
+        .char-zone img.emo-miedoso,
+        .char-zone img.emo-miedosa     { animation:reactShake .4s ease 2; filter:drop-shadow(-6px 0 20px rgba(140,60,200,.4)) brightness(.92); }
+        .char-zone img.emo-disgustado,
+        .char-zone img.emo-disgustada  { animation:reactPulse .5s ease; filter:drop-shadow(-6px 0 20px rgba(120,180,40,.4)) saturate(1.1); }
+        .char-zone img.emo-neutral     { filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); }
+        .char-zone img.emo-somnoliento,
+        .char-zone img.emo-somnolienta { animation:reactDroop 1.4s ease forwards; filter:drop-shadow(-6px 0 20px rgba(120,80,180,.4)) saturate(.6) brightness(.8); }
+
+        .char-bubble {
+            position:absolute; top:6%; left:50%; transform:translateX(-50%) scale(.85);
+            background:rgba(20,0,6,.94); border-radius:14px; padding:10px 16px;
+            max-width:min(230px, 60vw); text-align:center; font-family:'Noto Serif',serif; font-size:.78rem;
+            color:#fff; opacity:0; pointer-events:none; transition:opacity .35s ease, transform .35s ease;
+            z-index:5;
+        }
+        .char-bubble::before {
+            content:''; position:absolute; inset:0; border-radius:14px; padding:2px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            box-shadow:0 0 14px rgba(255,64,112,.5); pointer-events:none;
+        }
+        .char-bubble.show { opacity:1; transform:translateX(-50%) scale(1); }
+
+        .sidebar { flex:0 0 190px; display:flex; flex-direction:column; gap:8px; min-width:170px; }
+        .scard { background:rgba(22,0,6,.65); border:1px solid rgba(255,64,112,.28); border-radius:9px; padding:10px 12px; position:relative; }
+        .scard::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,#ff4070,#c00030); border-radius:9px 0 0 9px; box-shadow:0 0 7px #ff4070; }
+        .srow { display:flex; gap:6px; }
+        .shalf { flex:1; }
+        .sl { font-size:.52rem; letter-spacing:3px; text-transform:uppercase; color:rgba(255,150,170,.6); margin-bottom:3px; }
+        .sv  { font-family:'Noto Serif',serif; font-size:1.08rem; color:#fff; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
+        .svi { font-family:'Noto Serif',serif; font-size:.98rem; color:#fff; font-style:italic; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
+        .sdiv { width:1px; background:rgba(255,64,112,.22); }
+        .rec-list { list-style:none; margin-top:5px; }
+        .rec-list li { font-size:.76rem; color:rgba(255,200,215,.88); padding:3px 0 3px 13px; position:relative; border-bottom:1px solid rgba(255,64,112,.08); }
+        .rec-list li:last-child { border-bottom:none; }
+        .rec-list li::before { content:'›'; position:absolute; left:0; color:#ff4070; font-size:.9rem; text-shadow:0 0 5px #ff4070; }
+
+        .bot-row { display:flex; gap:10px; width:100%; flex-wrap:wrap; }
+        .bl { flex:1 1 260px; min-height:128px; } .br { flex:1 1 260px; min-height:128px; }
+
+        .chat-inner { height:100%; display:flex; flex-direction:column; gap:5px; }
+        .chat-top { font-size:.56rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
+        .chat-body { display:flex; gap:8px; flex:1; align-items:center; flex-wrap:wrap; }
+        .chat-kanji { font-size:1.4rem; color:rgba(255,64,112,.2); writing-mode:vertical-rl; font-weight:bold; letter-spacing:4px; flex-shrink:0; }
+        .chat-data { flex:1; display:flex; flex-direction:column; gap:5px; min-width:120px; }
+        .mbars { display:flex; flex-direction:column; gap:3px; align-self:flex-end; flex-shrink:0; }
+        .mb { height:3px; border-radius:2px; background:linear-gradient(90deg,#ff4070,#ff90b0); box-shadow:0 0 4px #ff4070; animation:bPulse 2s ease-in-out infinite; }
+        .mb:nth-child(1){width:50px;} .mb:nth-child(2){width:34px;animation-delay:.3s;} .mb:nth-child(3){width:42px;animation-delay:.6s;}
+        @keyframes bPulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+        .chat-foot { font-size:.52rem; letter-spacing:3px; color:rgba(255,150,170,.25); text-align:center; text-transform:uppercase; }
+
+        .soon-inner { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; }
+        .soon-sub { font-size:.54rem; letter-spacing:5px; color:rgba(255,150,170,.48); text-transform:uppercase; }
+        .soon-title { font-family:'Noto Serif',serif; font-size:clamp(1.15rem,2.6vw,1.55rem); color:#fff; font-weight:700; font-style:italic; text-shadow:0 0 14px rgba(255,64,112,.75),0 0 30px rgba(255,64,112,.38); }
+        .soon-edad { font-family:'Noto Serif',serif; font-size:.78rem; color:rgba(255,180,200,.75); letter-spacing:2px; }
+        .sdots { display:flex; gap:6px; }
+        .sdot { width:7px; height:7px; border-radius:50%; background:#ff4070; box-shadow:0 0 8px #ff4070; animation:dBlink 1.4s ease-in-out infinite; }
+        .sdot:nth-child(2){animation-delay:.2s;} .sdot:nth-child(3){animation-delay:.4s;}
+        @keyframes dBlink{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
+
+        .footer { text-align:center; margin-top:7px; font-size:.56rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
+
+        /* ── Panel de captura de reacción (miniatura) ── */
+        .captura-inner { height:100%; display:flex; flex-direction:column; gap:8px; }
+        .captura-top { font-size:.56rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
+        .captura-body { display:flex; align-items:center; justify-content:center; gap:10px; flex:1; cursor:pointer; }
+        .captura-img {
+            width:90px; height:90px; object-fit:cover; border-radius:12px;
+            border:2px solid rgba(255,64,112,.5); box-shadow:0 0 10px rgba(255,64,112,.35);
+            background:#100005;
+        }
+        .captura-img.foto { transform:scaleX(-1); } /* la foto capturada se ve como espejo, igual que la cámara */
+        .captura-vs { font-family:'Cinzel',serif; color:#ff4070; font-size:1.1rem; text-shadow:0 0 8px #ff4070; }
+        .captura-caption { font-size:.68rem; color:rgba(255,200,215,.85); text-align:center; }
+        .captura-caption u { color:#ff90b0; cursor:pointer; }
+
+        /* ── Botón nueva pregunta ── */
+        .btn-nueva-preg {
+            width:100%; margin-top:6px; padding:8px 0; border-radius:20px;
+            border:1.5px solid rgba(255,64,112,.55);
+            background:rgba(40,0,12,.7); color:#fff;
+            font-family:'Raleway',sans-serif; font-size:.75rem;
+            font-weight:700; letter-spacing:3px; cursor:pointer;
+            text-transform:uppercase; transition:all .2s;
+            box-shadow:0 0 8px rgba(255,64,112,.2);
+        }
+        .btn-nueva-preg:hover {
+            background:rgba(255,64,112,.25);
+            box-shadow:0 0 16px rgba(255,64,112,.5);
+        }
+
+        /* ── MODAL GRANDE: "TU REACCIÓN" (se abre sola o al tocar la miniatura) ── */
+        #popup-reaccion {
+            position:fixed; inset:0;
+            z-index:1001; background:rgba(6,0,2,.92);
+            display:none; align-items:center; justify-content:center; padding:16px;
+        }
+        #popup-reaccion.show { display:flex; animation:fadeInOvR .3s ease; }
+        @keyframes fadeInOvR { from{opacity:0;} to{opacity:1;} }
+
+        .pr-inner {
+            position:relative; z-index:2;
+            background:rgba(16,0,4,.98); border-radius:20px;
+            padding:28px 32px 24px; width:min(860px,97vw); max-height:96vh;
+            overflow-y:auto; display:flex; flex-direction:column; gap:16px;
+            box-shadow:0 0 50px rgba(255,64,112,.35);
+        }
+        .pr-inner::before {
+            content:''; position:absolute; inset:0; border-radius:20px; padding:2.5px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            box-shadow:0 0 30px rgba(255,64,112,.6); pointer-events:none;
+        }
+        .pr-title {
+            font-family:'Cinzel',serif; font-weight:900; color:#fff;
+            font-size:clamp(1.2rem,3vw,2rem); letter-spacing:5px;
+            text-shadow:0 0 18px rgba(255,64,112,.9); text-align:center;
+        }
+        .pr-pregunta {
+            font-family:'Noto Serif',serif; font-style:italic;
+            font-size:clamp(.95rem,2vw,1.2rem); color:rgba(255,210,222,.95);
+            line-height:1.5; text-align:center; padding:0 8px;
+        }
+        .pr-versus {
+            display:flex; align-items:center; justify-content:center;
+            gap:20px; margin-top:4px; flex-wrap:wrap;
+        }
+        .pr-col { display:flex; flex-direction:column; align-items:center; gap:8px; flex:1; min-width:220px; max-width:340px; }
+        .pr-label {
+            font-size:.6rem; letter-spacing:4px; color:rgba(255,150,170,.65);
+            text-transform:uppercase;
+        }
+        .pr-foto {
+            width:clamp(200px,30vw,300px); height:clamp(200px,30vw,300px);
+            object-fit:cover; border-radius:14px;
+            border:2.5px solid rgba(255,64,112,.6);
+            box-shadow:0 0 22px rgba(255,64,112,.4);
+            transform:scaleX(-1); background:#100005;
+        }
+        .pr-vs {
+            font-family:'Cinzel',serif; color:#ff4070; font-size:2rem;
+            font-weight:900; text-shadow:0 0 14px #ff4070; flex-shrink:0;
+        }
+
+        /* ── Carta del personaje — grande, flip 3D ── */
+        .pr-carta {
+            width:clamp(200px,30vw,300px); height:clamp(200px,30vw,300px);
+            cursor:pointer; perspective:1000px; position:relative;
+        }
+        .pr-carta-cara {
+            position:absolute; inset:0; border-radius:14px;
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:10px; padding:18px;
+            backface-visibility:hidden; transition:transform .55s ease;
+            border:2.5px solid rgba(255,64,112,.6);
+            box-shadow:0 0 22px rgba(255,64,112,.4);
+            background:rgba(20,0,6,.97);
+        }
+        .pr-carta-back  { transform:rotateY(0deg); }
+        .pr-carta-front { transform:rotateY(180deg); }
+        .pr-carta.flipped .pr-carta-back  { transform:rotateY(-180deg); }
+        .pr-carta.flipped .pr-carta-front { transform:rotateY(0deg); }
+        .pr-carta-icon { font-size:3rem; }
+        .pr-carta-hint {
+            font-size:.65rem; letter-spacing:2px; color:rgba(255,200,215,.75);
+            line-height:1.4; text-align:center; text-transform:uppercase;
+        }
+        .pr-carta-tag {
+            font-size:.55rem; letter-spacing:3px; text-transform:uppercase;
+            color:rgba(255,150,170,.55); margin-bottom:4px;
+        }
+        .pr-carta-img {
+            width:70px; height:70px; object-fit:cover; object-position:top;
+            border-radius:50%;
+            border:2px solid rgba(255,64,112,.6);
+            box-shadow:0 0 12px rgba(255,64,112,.4);
+            flex-shrink:0;
+        }
+        /* Imagen de personaje que ocupa todo el frente de la carta */
+        .pr-carta-img-full {
+            position:absolute; inset:0; width:100%; height:100%;
+            object-fit:cover; object-position:top center;
+            border-radius:14px;
+        }
+        .pr-carta-hint-front {
+            position:absolute; bottom:0; left:0; right:0;
+            background:linear-gradient(transparent, rgba(10,0,4,.88));
+            border-radius:0 0 14px 14px;
+            padding:20px 10px 10px;
+            font-family:'Cinzel',serif; font-size:.7rem; font-weight:700;
+            color:#ff90b0; letter-spacing:3px; text-transform:uppercase;
+            text-align:center; text-shadow:0 0 8px rgba(255,64,112,.8);
+            z-index:2;
+        }
+        .pr-carta-nombre {
+            font-family:'Cinzel',serif; font-size:clamp(1rem,2.5vw,1.4rem);
+            font-weight:700; color:#ff90b0; letter-spacing:3px;
+            text-transform:uppercase; text-shadow:0 0 12px rgba(255,64,112,.8);
+            text-align:center;
+        }
+        .pr-carta-divider {
+            width:70%; height:1.5px;
+            background:linear-gradient(90deg,transparent,#ff4070,transparent);
+            box-shadow:0 0 6px #ff4070;
+        }
+        .pr-carta-cita {
+            font-family:'Noto Serif',serif; font-style:italic;
+            font-size:clamp(.82rem,1.8vw,1.05rem); color:rgba(255,220,235,.95);
+            line-height:1.55; text-align:center;
+        }
+        .pr-cerrar-btn {
+            align-self:center; padding:10px 36px; border-radius:30px;
+            border:2px solid rgba(255,64,112,.55);
+            background:rgba(40,0,12,.8); color:#fff;
+            font-family:'Raleway',sans-serif; font-size:.82rem;
+            font-weight:700; letter-spacing:3px; cursor:pointer;
+            transition:all .2s; text-transform:uppercase;
+        }
+        .pr-cerrar-btn:hover {
+            background:rgba(255,64,112,.25);
+            box-shadow:0 0 18px rgba(255,64,112,.5);
+        }
+        @media (max-width:600px) {
+            .pr-inner { padding:18px 14px 16px; gap:12px; }
+            .pr-versus { gap:12px; }
+            .pr-vs { font-size:1.4rem; }
+        }
+
+        /* ── CONTADOR 40s superpuesto, parte superior ── */
+        #contador-wrap {
+            position:fixed; top:16px; left:50%; transform:translateX(-50%);
+            z-index:1500; width:min(780px,94vw);
+            background:rgba(8,0,2,.55);
+            backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+            padding:14px 24px 14px;
+            display:none; flex-direction:column; align-items:center; gap:8px;
+            border-radius:16px;
+            border:2px solid rgba(255,64,112,.55);
+            box-shadow:0 0 28px rgba(255,64,112,.45), inset 0 0 30px rgba(255,64,112,.06);
+        }
+        #contador-wrap::before {
+            content:''; position:absolute; inset:0; border-radius:16px; padding:2px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            pointer-events:none;
+        }
+        #contador-wrap.visible { display:flex; }
+        #contador-pregunta {
+            font-family:'Noto Serif',serif; font-style:italic; font-weight:700;
+            font-size:clamp(1rem,2.5vw,1.5rem); color:#fff; text-align:center;
+            max-width:820px; line-height:1.4;
+            text-shadow:0 0 16px rgba(255,64,112,.6);
+        }
+        #contador-emoji { font-size:clamp(1.8rem,4vw,2.8rem); line-height:1; }
+        .contador-bottom {
+            display:flex; align-items:center; gap:18px; width:100%; max-width:600px;
+        }
+        #contador-numero {
+            font-family:'Cinzel',serif; font-size:clamp(2rem,5vw,3.2rem);
+            font-weight:900; color:#ff4070; min-width:2ch; text-align:center;
+            text-shadow:0 0 20px rgba(255,64,112,.9); line-height:1; flex-shrink:0;
+        }
+        #contador-barra-wrap {
+            flex:1; height:7px; background:rgba(255,64,112,.18);
+            border-radius:4px; overflow:hidden;
+        }
+        #contador-barra {
+            height:100%; width:100%; border-radius:4px;
+            background:linear-gradient(90deg,#ff4070,#ff90b0);
+            box-shadow:0 0 10px #ff4070; transition:width 1s linear;
+        }
+        #contador-label {
+            font-size:.5rem; letter-spacing:3px; color:rgba(255,150,170,.4);
+            text-transform:uppercase; text-align:center;
+        }
+
+        .sync-badge {
+            font-size:.5rem; letter-spacing:2px; text-transform:uppercase;
+            color:rgba(120,255,170,.75); text-align:center; margin-top:2px;
+            display:flex; align-items:center; justify-content:center; gap:5px;
+        }
+        .sync-dot { width:6px; height:6px; border-radius:50%; background:#3dffa0; box-shadow:0 0 6px #3dffa0; animation:dBlink 1.4s ease-in-out infinite; }
+        .sync-badge.off { color:rgba(255,150,170,.4); }
+        .sync-badge.off .sync-dot { background:rgba(255,150,170,.4); box-shadow:none; animation:none; }
+
+        /* ── POPUP GÉNERO ── */
+        .popup-genero {
+            position:fixed; top:50%; left:50%;
+            transform:translate(-50%,-50%) scale(0.85);
+            z-index:1000; background:rgba(18,0,5,.95);
+            border-radius:18px; padding:32px 44px;
+            text-align:center; opacity:0; pointer-events:none;
+            transition:opacity .35s ease, transform .35s ease; min-width:300px; max-width:90vw;
+        }
+        .popup-genero > * { position:relative; z-index:2; }
+        .popup-genero.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+        .popup-genero::before {
+            content:''; position:absolute; inset:0; border-radius:18px; padding:2.5px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            box-shadow:0 0 24px rgba(255,64,112,.65); pointer-events:none; z-index:-1;
+        }
+        .gen-btn {
+            padding:10px 24px; border-radius:30px; border:2px solid #ff4070;
+            background:rgba(40,0,12,.8); color:#fff; font-family:'Raleway',sans-serif;
+            font-size:.9rem; font-weight:700; letter-spacing:2px; cursor:pointer;
+            box-shadow:0 0 12px rgba(255,64,112,.4); transition:all .2s; position:relative; z-index:10;
+        }
+        .gen-btn:hover { background:rgba(255,64,112,.25); box-shadow:0 0 20px rgba(255,64,112,.7); transform:scale(1.05); }
+        .gen-btn.alt { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.06); }
+        .gen-btn.alt:hover { background:rgba(255,255,255,.16); box-shadow:0 0 16px rgba(255,255,255,.25); }
+
+        /* ── POPUP EMOCIÓN ── */
+        #popup-persona {
+            position:fixed; bottom: 20px; right: 20px;
+            transform: scale(0.8);
+            transform-origin: bottom right;
+            z-index:999; background:rgba(20,0,6,.92);
+            border-radius:16px; padding:18px 24px;
+            text-align:center; opacity:0; pointer-events:none;
+            transition:opacity .35s ease, transform .35s ease; min-width:220px; max-width:min(260px,80vw);
+        }
+        #popup-persona.show { opacity:1; pointer-events:auto; transform:scale(1); }
+        #popup-persona::before {
+            content:''; position:absolute; inset:0; border-radius:16px; padding:2.5px;
+            background:linear-gradient(135deg,#ff4070,#ff90b0,#c00030,#ff4070);
+            -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:xor; mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude;
+            box-shadow:0 0 20px rgba(255,64,112,.6);
+        }
+        .popup-icon { font-size:2rem; margin-bottom:4px; }
+        .popup-tipo { font-family:'Cinzel',serif; font-size:1.1rem; font-weight:900; color:#fff; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 14px rgba(255,64,112,.9); }
+        .popup-edad { font-family:'Noto Serif',serif; font-size:.8rem; color:rgba(255,180,200,.8); margin-top:4px; letter-spacing:2px; }
+        .popup-genero-txt { font-size:.6rem; letter-spacing:3px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:2px; }
+        .popup-sub  { font-size:.52rem; letter-spacing:4px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:6px; }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — laptops medianas / pantallas 13"-15"
+           ══════════════════════════════════════════════ */
+        @media (max-width:1200px) {
+            .page-wrap { max-width:94%; }
+            .sidebar { flex:0 0 170px; min-width:150px; }
+        }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — tablets y laptops pequeñas
+           ══════════════════════════════════════════════ */
+        @media (max-width:1024px) {
+            body { padding:12px; }
+            .hero-row { flex-wrap:wrap; }
+            .cam-zone { flex:1 1 100%; order:1; }
+            .char-zone { flex:1 1 100%; order:2; min-height:220px; }
+            .sidebar { flex:1 1 100%; flex-direction:row; order:3; min-width:0; }
+            .scard { flex:1; }
+            .cam-outer { width:clamp(220px, 46vw, 300px); }
+        }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — móviles y tablets verticales
+           ══════════════════════════════════════════════ */
+        @media (max-width:768px) {
+            body { padding:10px 12px; }
+            .main-title { letter-spacing:2px; }
+            .hero-row { gap:8px; }
+            .nb-inner { padding:10px 12px; }
+            .caps-row { display:none; }
+            .ssym { display:none; }
+            .topbar { margin-bottom:8px; }
+
+            .cam-zone { padding:2px 0 6px; }
+            .cam-outer { width:min(78vw, 340px); }
+
+            .char-zone { min-height:180px; }
+            .char-zone img { height:clamp(160px, 28vw, 260px); }
+
+            .sidebar { flex-direction:column; }
+            .scard { flex:none; }
+
+            .bot-row { flex-direction:column; }
+            .bl, .br { flex:1 1 auto; min-height:110px; }
+
+            #popup-persona { right:10px; bottom:10px; padding:14px 18px; max-width:min(230px,72vw); }
+        }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE — celulares chicos
+           ══════════════════════════════════════════════ */
+        @media (max-width:480px) {
+            body { padding:8px; }
+            .main-title { font-size:1.15rem; letter-spacing:1.5px; }
+            .kanji-col { display:none; }
+
+            .cam-outer { width:min(88vw, 92vw); }
+            .cam-label { font-size:.5rem; letter-spacing:3px; }
+
+            .char-zone { min-height:0; display:none; }
+
+            .sl { font-size:.5rem; }
+            .sv, .svi { font-size:.85rem; }
+
+            .popup-genero { padding:24px 20px; min-width:auto; width:88vw; }
+            .gen-btn { padding:9px 18px; font-size:.82rem; }
+
+            .footer { font-size:.5rem; letter-spacing:2px; }
+        }
+
+        @media (min-width:1600px) {
+            .page-wrap { max-width:1320px; }
+        }
+
+        @media (max-width:900px) and (orientation:landscape) {
+            .char-zone { display:none; }
+            .cam-outer { width:min(38vh, 260px); }
+            .bot-row { display:none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="kanji-col L">邪　不　道　刃　無　限　永　遠　紅　花</div>
+    <div class="kanji-col R">邪　不　道　刃　無　限　永　遠　紅　花</div>
+    <div class="bgf" style="top:7%;  left:1.5%;">❀</div>
+    <div class="bgf" style="top:28%; left:.5%;">✿</div>
+    <div class="bgf" style="top:56%; left:1%;">❀</div>
+    <div class="bgf" style="top:78%; left:1.5%;">✾</div>
+    <div class="bgf" style="top:7%;  right:1.5%;">❀</div>
+    <div class="bgf" style="top:30%; right:.5%;">✿</div>
+    <div class="bgf" style="top:58%; right:1%;">✾</div>
+    <div class="bgf" style="top:80%; right:1.5%;">❀</div>
+    <div class="petal" style="left:6%;  font-size:.9rem;animation-duration:7s; animation-delay:0s;">✿</div>
+    <div class="petal" style="left:17%; font-size:.7rem;animation-duration:9s; animation-delay:1.3s;">❀</div>
+    <div class="petal" style="left:72%; font-size:.8rem;animation-duration:8s; animation-delay:.6s;">✿</div>
+    <div class="petal" style="left:84%; font-size:.7rem;animation-duration:10s;animation-delay:2.2s;">❀</div>
+    <div class="petal" style="left:50%; font-size:.65rem;animation-duration:11s;animation-delay:1.6s;">✾</div>
+
+    <div class="page-wrap">
+        <h1 class="main-title">Analizador de Emociones</h1>
+
+        <div class="hero-row">
+            <!-- PANEL GRANDE -->
+            <div class="neon-box" style="flex:1; overflow:hidden;">
+                <div class="panel-grid"></div>
+                <div class="nb-inner">
+                    <div class="ssym L"><span>∞</span><span>8</span><span>∞</span></div>
+                    <div class="ssym R"><span>∞</span><span>8</span><span>∞</span></div>
+                    <div class="caps-row">
+                        <div class="cap">∞</div><div class="cap">∞</div><div class="cap">∞</div>
+                    </div>
+                    <div class="topbar">
+                        <div class="td"></div><div class="tl"></div>
+                        <span class="ts">∞</span><div class="tl"></div>
+                        <span class="ts">∞</span><div class="tl"></div>
+                        <div class="td"></div>
+                    </div>
+                    <div class="main-content">
+                        <!-- ZONA CÁMARA -->
+                        <div class="cam-zone">
+                            <div style="font-family:'Noto Serif',serif; font-size:.78rem; color:rgba(255,220,230,.7); letter-spacing:3px; margin-bottom:6px; text-shadow:0 0 8px rgba(255,64,112,.5);">Chat</div>
+                            <div class="cam-outer">
+                                <div class="cam-ring cr3"></div>
+                                <div class="cam-ring cr2"></div>
+                                <div class="cam-ring cr1"></div>
+                                <video id="videoStream" autoplay muted playsinline></video>
+                                <svg class="cam-svg" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                                    <defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                                    <g filter="url(#glow)" fill="none">
+                                        <circle cx="130" cy="130" r="116" stroke="#ff4070" stroke-width="3"/>
+                                        <circle cx="130" cy="130" r="104" stroke="#ff90b0" stroke-width="1.2" stroke-dasharray="4 6" opacity=".55"/>
+                                        <path d="M78,14 Q130,0 182,14" stroke="#ff4070" stroke-width="2" fill="none"/>
+                                        <path d="M92,8  Q130,0 168,8"  stroke="#ff90b0" stroke-width="1.2" fill="none" opacity=".6"/>
+                                        <path d="M78,246 Q130,260 182,246" stroke="#ff4070" stroke-width="2" fill="none"/>
+                                        <path d="M92,252 Q130,260 168,252" stroke="#ff90b0" stroke-width="1.2" fill="none" opacity=".6"/>
+                                        <path d="M14,78  Q0,130 14,182"  stroke="#ff4070" stroke-width="2" fill="none"/>
+                                        <path d="M8,92   Q0,130 8,168"   stroke="#ff90b0" stroke-width="1.2" fill="none" opacity=".6"/>
+                                        <path d="M246,78  Q260,130 246,182" stroke="#ff4070" stroke-width="2" fill="none"/>
+                                        <path d="M252,92  Q260,130 252,168" stroke="#ff90b0" stroke-width="1.2" fill="none" opacity=".6"/>
+                                        <circle cx="130" cy="14"  r="5.5" fill="#ff4070"/>
+                                        <circle cx="130" cy="246" r="5.5" fill="#ff4070"/>
+                                        <circle cx="14"  cy="130" r="5.5" fill="#ff4070"/>
+                                        <circle cx="246" cy="130" r="5.5" fill="#ff4070"/>
+                                        <circle cx="57"  cy="57"  r="5" stroke="#ff90b0" stroke-width="2" fill="rgba(20,0,5,.8)" opacity=".8"/>
+                                        <circle cx="203" cy="57"  r="5" stroke="#ff90b0" stroke-width="2" fill="rgba(20,0,5,.8)" opacity=".8"/>
+                                        <circle cx="57"  cy="203" r="5" stroke="#ff90b0" stroke-width="2" fill="rgba(20,0,5,.8)" opacity=".8"/>
+                                        <circle cx="203" cy="203" r="5" stroke="#ff90b0" stroke-width="2" fill="rgba(20,0,5,.8)" opacity=".8"/>
+                                        <line x1="60" y1="54"  x2="72" y2="66"  stroke="#ff90b0" stroke-width="1.2" opacity=".5"/>
+                                        <line x1="200" y1="54" x2="188" y2="66" stroke="#ff90b0" stroke-width="1.2" opacity=".5"/>
+                                        <line x1="60" y1="206" x2="72" y2="194" stroke="#ff90b0" stroke-width="1.2" opacity=".5"/>
+                                        <line x1="200" y1="206"x2="188" y2="194"stroke="#ff90b0" stroke-width="1.2" opacity=".5"/>
+                                        <text x="117" y="12"  fill="#ff90b0" font-size="11" opacity=".85" font-family="serif">∞</text>
+                                        <text x="117" y="256" fill="#ff90b0" font-size="11" opacity=".85" font-family="serif">∞</text>
+                                    </g>
+                                </svg>
+                                <div class="corner-node cn-tl"></div>
+                                <div class="corner-node cn-tr"></div>
+                                <div class="corner-node cn-bl"></div>
+                                <div class="corner-node cn-br"></div>
+                                <div class="ck" style="top:14px; left:18px; animation:petalFall 6s 0s linear infinite;">✿</div>
+                                <div class="ck" style="bottom:28px;left:6px;  animation:petalFall 8s 1s linear infinite;">❀</div>
+                                <div class="ck" style="bottom:18px;right:12px;animation:petalFall 7s 2s linear infinite;">✿</div>
+                                <div class="ck" style="top:40px;  right:8px;  animation:petalFall 9s .5s linear infinite;">✾</div>
+                            </div>
+                            <div class="cam-label">∞ Camara en vivo ∞</div>
+                            <div id="cam-status" class="cam-status">No se detecto camara. Conecta una camara.</div>
+                            <div id="sync-badge" class="sync-badge off"><span class="sync-dot"></span><span id="sync-text">Conectando...</span></div>
+                        </div>
+                        <!-- ZONA PERSONAJE -->
+                        <div class="char-zone">
+                            <img id="charImg" class="personaje-base" src="PERSONAJEE.png" alt="personajes">
+                            <div id="charBubble" class="char-bubble"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR -->
+            <div class="sidebar">
+                <div class="neon-box scard">
+                    <div class="nb-inner" style="padding:9px 11px;">
+                        <div class="srow">
+                            <div class="shalf">
+                                <div class="sl">Genero</div>
+                                <div class="sv" id="genero" style="opacity:.4; font-style:italic; font-size:.8rem;">Analizando...</div>
+                            </div>
+                            <div class="sdiv"></div>
+                            <div class="shalf" style="padding-left:8px;">
+                                <div class="sl">Edad</div>
+                                <div class="sv" id="edad" style="opacity:.4; font-style:italic; font-size:.8rem;">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="neon-box scard">
+                    <div class="nb-inner" style="padding:9px 11px;">
+                        <div class="sl">Emocion Detectada</div>
+                        <div class="svi" id="emocion" style="opacity:.4; font-style:italic; font-size:.8rem;">Analizando...</div>
+                    </div>
+                </div>
+                <div class="neon-box scard" style="flex:1;">
+                    <div class="nb-inner" style="padding:9px 11px;">
+                        <div class="sl">Recomendaciones</div>
+                        <ul class="rec-list" id="recomendaciones">
+                            <li style="opacity:.4; font-style:italic;">Esperando camara...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILA INFERIOR -->
+        <div class="bot-row">
+            <div class="neon-box bl">
+                <div class="nb-inner">
+                    <div class="chat-inner">
+                        <div class="chat-top">∞ &nbsp; Analisis en curso &nbsp; ∞</div>
+                        <div class="chat-body">
+                            <div class="chat-kanji">無<br>限<br>∞</div>
+                            <div class="chat-data">
+                                <div><div class="sl">Genero</div><div class="sv" id="genero2" style="font-size:.92rem; opacity:.4; font-style:italic;">Analizando...</div></div>
+                                <div><div class="sl">Emocion</div><div class="svi" id="emocion2" style="font-size:.88rem; opacity:.4; font-style:italic;">Analizando...</div></div>
+                            </div>
+                            <div class="mbars"><div class="mb"></div><div class="mb"></div><div class="mb"></div></div>
+                        </div>
+                        <div class="chat-foot">Chat &nbsp; ∞ &nbsp; Live Analysis</div>
+                    </div>
+                </div>
+            </div>
+            <div class="neon-box br" id="panelCaptura" style="display:none;">
+                <div class="nb-inner">
+                    <div class="captura-inner">
+                        <div class="captura-top">∞ &nbsp; Tu reacción &nbsp; ∞</div>
+                        <div class="captura-body" id="capturaClickArea">
+                            <img id="capturaFoto" class="captura-img foto" alt="tu reacción">
+                            <div class="captura-vs">✕</div>
+                            <img id="capturaPersonaje" class="captura-img" alt="personaje">
+                        </div>
+                        <div class="captura-caption">Toca la imagen para ver la frase del personaje</div>
+                        <button id="btn-nueva-pregunta" class="btn-nueva-preg">✦ Nueva Pregunta</button>
+                    </div>
+                </div>
+            </div>
+            <div class="neon-box br" id="panelSoonTitulo">
+                <div class="nb-inner">
+                    <div class="soon-inner">
+                        <div class="soon-sub">Analizador Pro</div>
+                        <div class="soon-title" id="soon-titulo">Analizando...</div>
+                        <div class="soon-edad" id="edadDisplay">Edad: —</div>
+                        <div class="sdots"><div class="sdot"></div><div class="sdot"></div><div class="sdot"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">∞ &nbsp; • &nbsp; Actualizando en tiempo real &nbsp; • &nbsp; ∞</div>
+
+    <canvas id="capturaCanvas" style="display:none;"></canvas>
+    <div id="flash-overlay" style="position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2000;transition:opacity .08s ease;"></div>
+    <style>#flash-overlay.flash{opacity:.85;}</style>
+
+    <!-- CONTADOR 40s: superpuesto arriba con la pregunta -->
+    <div id="contador-wrap">
+        <div id="contador-emoji">🎭</div>
+        <div id="contador-pregunta">—</div>
+        <div class="contador-bottom">
+            <div id="contador-numero">40</div>
+            <div id="contador-barra-wrap"><div id="contador-barra"></div></div>
+        </div>
+        <div id="contador-label">∞ &nbsp; reacciona con tu expresión &nbsp; ∞</div>
+    </div>
+
+    <!-- MODAL GRANDE: "TU REACCIÓN" -->
+    <div id="popup-reaccion">
+        <div class="pr-inner">
+            <div class="pr-title">✨ TU REACCIÓN ✨</div>
+            <div class="pr-pregunta" id="pr-pregunta">—</div>
+            <div class="pr-versus">
+                <div class="pr-col">
+                    <div class="pr-label">✦ &nbsp; Tú &nbsp; ✦</div>
+                    <img id="pr-foto" class="pr-foto" alt="tu reacción">
+                </div>
+                <div class="pr-vs">VS</div>
+                <div class="pr-col">
+                    <div class="pr-label">✦ &nbsp; Personaje &nbsp; ✦</div>
+                    <div class="pr-carta" id="pr-carta">
+                        <!-- FRENTE: imagen del personaje -->
+                        <div class="pr-carta-cara pr-carta-back">
+                            <img id="pr-foto-personaje" class="pr-carta-img-full" alt="personaje" src="">
+                            <div class="pr-carta-hint-front">✦ &nbsp; Personaje &nbsp; ✦<br><span style="font-size:.6rem;letter-spacing:2px;opacity:.7;">Toca para ver su frase</span></div>
+                        </div>
+                        <!-- REVERSO: nombre + frase -->
+                        <div class="pr-carta-cara pr-carta-front">
+                            <div class="pr-carta-tag">también pasó por esto</div>
+                            <div class="pr-carta-nombre" id="pr-nombre">—</div>
+                            <div class="pr-carta-divider"></div>
+                            <div class="pr-carta-cita" id="pr-cita">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="pr-cerrar" class="pr-cerrar-btn">CERRAR ✕</button>
+        </div>
+    </div>
+
+    <!-- POPUP GÉNERO -->
+    <div id="popup-genero" class="popup-genero show">
+        <div class="popup-icon">👤</div>
+        <div class="popup-tipo">Selecciona tu género</div>
+        <div class="popup-sub" style="margin-bottom:16px;">Para personalizar tu análisis</div>
+        <div style="display:flex; gap:14px; justify-content:center; margin-top:8px; flex-wrap:wrap;">
+            <button id="btn-hombre" class="gen-btn">👨 Hombre</button>
+            <button id="btn-mujer"  class="gen-btn">👩 Mujer</button>
+        </div>
+        <div style="margin-top:14px;">
+            <button id="btn-soloVer" class="gen-btn alt">👀 Solo ver (sin cámara)</button>
+        </div>
+    </div>
+
+    <!-- POPUP EMOCIÓN -->
+    <div id="popup-persona">
+        <div class="popup-icon" id="popup-icon">👤</div>
+        <div class="popup-tipo" id="popup-tipo">—</div>
+        <div class="popup-edad" id="popup-edad">Edad estimada: —</div>
+        <div class="popup-genero-txt" id="popup-genero-txt">—</div>
+        <div class="popup-sub">Emoción detectada</div>
+    </div>
+
+    <!-- Firebase (version compat, para usar directo con <script> sin npm) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>
+        // face-api.js NO se carga desde raw.githubusercontent.com: ese dominio no es un CDN
+        // real y provoca cargas lentísimas (o directamente colgadas). jsdelivr sí es un CDN.
+        const MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+
+        // ── Firebase: vincula celular ↔ laptop en tiempo real ──
+        const firebaseConfig = {
+            apiKey: "AIzaSyBR35Hc0eSytaOLhrdH97CoVyG7-U_uM4o",
+            authDomain: "analizador-de-emociones.firebaseapp.com",
+            databaseURL: "https://analizador-de-emociones-default-rtdb.firebaseio.com",
+            projectId: "analizador-de-emociones",
+            storageBucket: "analizador-de-emociones.firebasestorage.app",
+            messagingSenderId: "522493234294",
+            appId: "1:522493234294:web:2da867b7de8977dccfa357",
+            measurementId: "G-SG2LQWCXHL"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const estadoRef = db.ref('estado_actual');
+
+        const recomendaciones = {
+            'feliz':       [
+                'Comparte tu alegría con alguien especial 😊',
+                'Aprovecha esta energía para ser creativa',
+                'Anota qué te hizo feliz hoy para recordarlo'
+            ],
+            'triste':      [
+                'Está bien sentirte así, date un momento',
+                'Habla con alguien de confianza sobre lo que sientes',
+                'Escucha tu música favorita o ve algo que te guste'
+            ],
+            'enojado':     [
+                'Respira profundo: 4s inhala, 4s exhala',
+                'Aléjate un momento del motivo del enojo',
+                'Toma agua fría y cuenta hasta 10 despacio'
+            ],
+            'enojada':     [
+                'Respira profundo: 4s inhala, 4s exhala',
+                'Aléjate un momento del motivo del enojo',
+                'Toma agua fría y cuenta hasta 10 despacio'
+            ],
+            'estresado':   [
+                'Para todo y respira profundo ahora mismo',
+                'Haz una pausa de 5 minutos lejos de la pantalla',
+                'Escribe qué te preocupa y atácalo de a uno'
+            ],
+            'estresada':   [
+                'Para todo y respira profundo ahora mismo',
+                'Haz una pausa de 5 minutos lejos de la pantalla',
+                'Escribe qué te preocupa y atácalo de a uno'
+            ],
+            'miedoso':     [
+                'Respira: inhala 4s, mantén 4s, exhala 4s',
+                'Recuerda que estás en un lugar seguro',
+                'Enfócate en 5 cosas que puedes ver ahora mismo'
+            ],
+            'miedosa':     [
+                'Respira: inhala 4s, mantén 4s, exhala 4s',
+                'Recuerda que estás en un lugar seguro',
+                'Enfócate en 5 cosas que puedes ver ahora mismo'
+            ],
+            'sorprendido': [
+                'Tómate un momento antes de reaccionar',
+                'Respira y analiza la situación con calma',
+                'Pregúntate: ¿esto realmente me afecta?'
+            ],
+            'sorprendida': [
+                'Tómate un momento antes de reaccionar',
+                'Respira y analiza la situación con calma',
+                'Pregúntate: ¿esto realmente me afecta?'
+            ],
+            'disgustado':  [
+                'Aléjate de lo que te molesta por un momento',
+                'Respira hondo y piensa en algo agradable',
+                'Busca un ambiente diferente para despejarte'
+            ],
+            'disgustada':  [
+                'Aléjate de lo que te molesta por un momento',
+                'Respira hondo y piensa en algo agradable',
+                'Busca un ambiente diferente para despejarte'
+            ],
+            'neutral':     [
+                'Buen momento para concentrarte en lo importante',
+                'Organiza tus ideas o haz una lista de tareas',
+                'Aprovecha la calma para aprender algo nuevo'
+            ],
+            'somnoliento': [
+                'Toma un descanso de 10-20 minutos si puedes',
+                'Toma agua fría o estira el cuerpo un momento',
+                'Si puedes, sal a tomar aire fresco'
+            ],
+            'somnolienta': [
+                'Toma un descanso de 10-20 minutos si puedes',
+                'Toma agua fría o estira el cuerpo un momento',
+                'Si puedes, sal a tomar aire fresco'
+            ],
+        };
+
+        // ── Banco de escenarios: cada uno tiene una pregunta y, por cada emoción
+        //    posible, un texto de reacción + un personaje + una cita corta que se
+        //    revela en la tarjeta grande "TU REACCIÓN" (después de la captura). ──
+        function expandirGenero(reacciones) {
+            const pares = [
+                ['enojado','enojada'], ['sorprendido','sorprendida'],
+                ['miedoso','miedosa'], ['disgustado','disgustada'],
+                ['estresado','estresada'], ['somnoliento','somnolienta']
+            ];
+            pares.forEach(([m, f]) => {
+                if (reacciones[m] && !reacciones[f]) reacciones[f] = reacciones[m];
+                if (reacciones[f] && !reacciones[m]) reacciones[m] = reacciones[f];
+            });
+            return reacciones;
+        }
+
+        const escenarios = [
+            {
+                pregunta: '¿Cómo reaccionarías si tuvieras que esperar durante años a alguien que quizá nunca vuelva?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Hua Cheng', texto:'Es comprensible que te afecte. Hua Cheng esperó durante 800 años por Xie Lian, sin abandonar su devoción por él.', cita:'Esperé 800 años. Habría esperado 800 más.' },
+                    sorprendido:  { personaje:'Hua Cheng', texto:'¿800 años? Es difícil imaginar una espera así. Hua Cheng convirtió esa espera en una de las partes más importantes de su historia.', cita:'El tiempo no borra lo que de verdad importa.' },
+                    feliz:        { personaje:'Hua Cheng', texto:'Imaginaste el mejor resultado: que esa persona regresara. Y tras 800 años, Hua Cheng finalmente se reencontró con Xie Lian.', cita:'Al final, volviste. Eso fue suficiente para mí.' },
+                    enojado:      { personaje:'Hua Cheng', texto:'Puede parecer injusto esperar tanto tiempo. Hua Cheng vivió siglos sin saber cuándo volvería a encontrarse con Xie Lian.', cita:'La espera dolió, pero nunca me hizo dudar.' },
+                    neutral:      { personaje:'Hua Cheng', texto:'Te lo tomaste con calma. Para Hua Cheng, sin embargo, esa espera ocupó siglos de su existencia.', cita:'Esperar también es una forma de amar.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo te sentirías si intentaras salvar a los demás y terminaran culpándote por lo ocurrido?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Xie Lian', texto:'Tiene sentido que te afecte. Xie Lian intentó ayudar a su pueblo durante la caída de Xianle, pero enfrentó rechazo y resentimiento.', cita:'Quise salvarlos. Terminé perdiéndolo todo por eso.' },
+                    enojado:      { personaje:'Xie Lian', texto:'Es comprensible que te enfade. Xie Lian también tuvo que soportar que sus intenciones fueran malinterpretadas.', cita:'Me culparon por intentar ayudar, y aun así lo volvería a hacer.' },
+                    miedoso:      { personaje:'Xie Lian', texto:'Una situación así puede hacerte dudar antes de volver a intervenir. Xie Lian vivió las consecuencias de ayudar en algo fuera de su control.', cita:'Aprendí a temer las consecuencias, no a dejar de intentarlo.' },
+                    sorprendido:  { personaje:'Xie Lian', texto:'Probablemente no esperarías que ayudar pudiera terminar así. La caída de Xianle cambió por completo la vida de Xie Lian.', cita:'Nunca imaginé que ayudar me costaría tanto.' },
+                    neutral:      { personaje:'Xie Lian', texto:'Parece que primero intentarías entender qué ocurrió. Xie Lian también enfrentó una situación sin una solución sencilla.', cita:'No todo tiene una respuesta fácil. Aprendí a aceptarlo.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si dos personas que fueron tus amigos terminaran alejándose de ti?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Feng Xin y Mu Qing', texto:'Es una reacción comprensible. Xie Lian, Feng Xin y Mu Qing estuvieron juntos mucho tiempo, pero las circunstancias terminaron separándolos.', cita:'El tiempo nos separó, pero lo que vivimos fue real.' },
+                    enojado:      { personaje:'Feng Xin y Mu Qing', texto:'Puede doler que una amistad termine por diferencias que parecen imposibles de solucionar. Su relación quedó marcada por esos conflictos.', cita:'A veces el orgullo pesó más que la amistad.' },
+                    sorprendido:  { personaje:'Feng Xin y Mu Qing', texto:'Quizás no esperarías que una amistad tan cercana pudiera terminar así. El tiempo y las experiencias cambiaron mucho su relación.', cita:'Nunca creí que algo tan fuerte pudiera romperse.' },
+                    neutral:      { personaje:'Feng Xin y Mu Qing', texto:'Tal vez piensas que algunas amistades simplemente toman caminos diferentes. Eso también ocurrió con quienes acompañaron a Xie Lian.', cita:'No todas las amistades duran para siempre, y está bien.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si de repente perdieras todo aquello que conocías?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Xie Lian', texto:'Es una situación muy difícil. Xie Lian perdió Xianle, su posición como príncipe y gran parte de lo que había conocido.', cita:'Perdí mi reino, mi título, casi todo. Seguí caminando igual.' },
+                    miedoso:      { personaje:'Xie Lian', texto:'Es normal que una situación así asuste. La caída de Xianle dejó a Xie Lian frente a un mundo completamente diferente.', cita:'No sabía qué venía después, y aun así seguí adelante.' },
+                    enojado:      { personaje:'Xie Lian', texto:'Perderlo todo sin poder evitarlo puede provocar mucha frustración.', cita:'Grité, lloré, y después me levanté de nuevo.' },
+                    sorprendido:  { personaje:'Xie Lian', texto:'Un cambio así puede sentirse imposible de procesar. La vida de Xie Lian cambió por completo después de la caída de Xianle.', cita:'Nunca imaginé cuánto podía cambiar todo en un instante.' },
+                    neutral:      { personaje:'Xie Lian', texto:'Parece que aceptarías el cambio antes de reaccionar. Xie Lian también tuvo que aprender a continuar tras perder su antigua vida.', cita:'Perder no significa terminar. Aprendí a empezar de nuevo.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si tuvieras que fingir que todo está bien mientras pasas por algo difícil?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Shi Qingxuan', texto:'Reconoces lo difícil que puede ser esconder lo que sientes. Shi Qingxuan mantuvo una actitud alegre mientras enfrentaba situaciones mucho más complicadas.', cita:'Sonreí por fuera mientras por dentro me derrumbaba.' },
+                    sorprendido:  { personaje:'Shi Qingxuan', texto:'A veces las personas que parecen estar mejor son las que están escondiendo más cosas. La historia de Shi Qingxuan muestra ese contraste.', cita:'Nadie notó lo que en realidad estaba cargando.' },
+                    enojado:      { personaje:'Shi Qingxuan', texto:'Quizás te molesta tener que fingir. Shi Qingxuan también enfrentó situaciones donde su alegría no podía resolver lo que ocurría.', cita:'Reír no siempre significa estar bien.' },
+                    neutral:      { personaje:'Shi Qingxuan', texto:'Parece que podrías mantener la calma aunque estés pasando por algo difícil.', cita:'A veces fingir calma es la única forma de seguir.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si descubrieras que alguien muy importante para ti te ocultó una parte enorme de su pasado?',
+                reacciones: expandirGenero({
+                    sorprendido:  { personaje:'Hua Cheng', texto:'Es comprensible. Hua Cheng mantiene gran parte de su pasado y su verdadera identidad en secreto cuando conoce a Xie Lian.', cita:'Te oculté mi pasado por miedo a perderte, no por no confiar en ti.' },
+                    enojado:      { personaje:'Hua Cheng', texto:'Puede sentirse como una traición descubrir un secreto tan importante. La identidad y el pasado de Hua Cheng permanecen ocultos durante buena parte de la historia.', cita:'Sé que dolió. Aun así, todo lo que sentí fue real.' },
+                    triste:       { personaje:'Hua Cheng', texto:'Quizás no te duele el secreto en sí, sino pensar que esa persona sintió que no podía contártelo.', cita:'No fue falta de confianza. Fue miedo a que me vieras distinto.' },
+                    neutral:      { personaje:'Hua Cheng', texto:'Parece que preferirías conocer primero sus razones antes de juzgarlo. Conocer el pasado de Hua Cheng cambia mucho la forma de entenderlo.', cita:'Conocer mi pasado no cambia lo que siento ahora.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si todos te juzgaran por algo que hiciste hace muchísimo tiempo?',
+                reacciones: expandirGenero({
+                    enojado:      { personaje:'Qi Rong', texto:'Es comprensible. Qi Rong es un ejemplo de cómo las acciones y la reputación pueden hacer que los demás tengan una imagen negativa de alguien.', cita:'Me juzgaron por lo que fui, no por lo que podría ser.' },
+                    triste:       { personaje:'Qi Rong', texto:'Puede ser difícil sentir que los demás solo recuerdan tus peores momentos.', cita:'Nadie pregunta por qué. Solo señalan lo que ya pasó.' },
+                    neutral:      { personaje:'Qi Rong', texto:'Parece que no dejarías que las opiniones de los demás definieran quién eres.', cita:'Lo que hice ayer no tiene por qué ser todo lo que soy.' },
+                    sorprendido:  { personaje:'Qi Rong', texto:'Quizás te sorprendería descubrir cuánto puede influir el pasado en la forma en que los demás ven a una persona.', cita:'No sabía que un solo momento pesaría tanto para siempre.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si alguien en quien confiabas desapareciera justo cuando más lo necesitabas?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Yin Yu', texto:'Es una situación dolorosa. Yin Yu vivió sentirse dejado atrás y las consecuencias de compararse con alguien a quien admiraba.', cita:'Esperé que alguien volviera por mí, y aprendí a seguir solo.' },
+                    enojado:      { personaje:'Yin Yu', texto:'Es normal sentir enojo cuando alguien de confianza no está cuando más lo necesitas.', cita:'Confié, y esa confianza no fue suficiente para retenerlo.' },
+                    miedoso:      { personaje:'Yin Yu', texto:'La idea de quedarse solo en un momento difícil puede ser aterradora.', cita:'El silencio después de que se fue fue lo peor.' },
+                    neutral:      { personaje:'Yin Yu', texto:'Parece que intentarías resolver la situación por tu cuenta antes de reaccionar.', cita:'Aprendí a no depender de que alguien más volviera.' }
+                })
+            },
+            {
+                pregunta: '¿Cómo reaccionarías si constantemente te compararan con alguien que parece ser mejor que tú?',
+                reacciones: expandirGenero({
+                    enojado:      { personaje:'Mu Qing', texto:'Es comprensible. Mu Qing pasó gran parte de su vida siendo comparado y enfrentando diferencias de posición y reconocimiento respecto a otras personas.', cita:'Me compararon toda la vida. Decidí construir mi propio camino.' },
+                    triste:       { personaje:'Mu Qing', texto:'Puede doler sentir que tus propios esfuerzos nunca parecen suficientes.', cita:'Di todo de mí, y aun así nunca fue suficiente para algunos.' },
+                    miedoso:      { personaje:'Mu Qing', texto:'Quizás te preocuparía no estar a la altura de las expectativas de los demás.', cita:'El miedo a no alcanzar nunca me dejó descansar.' },
+                    neutral:      { personaje:'Mu Qing', texto:'Parece que intentarías concentrarte en tu propio camino.', cita:'Dejé de compararme y empecé a medirme conmigo mismo.' },
+                    feliz:        { personaje:'Mu Qing', texto:'Tal vez convertirías la comparación en motivación para demostrar quién eres por ti mismo.', cita:'Cada comparación se convirtió en una razón más para esforzarme.' }
+                })
+            },
+            {
+                pregunta: '¿Qué sentirías si, después de que todos dejaran de creer en ti, una sola persona siguiera haciéndolo?',
+                reacciones: expandirGenero({
+                    triste:       { personaje:'Xie Lian y Hua Cheng', texto:'Parece que la situación te llegó. La relación entre Xie Lian y Hua Cheng está profundamente marcada por permanecer y creer incluso cuando los demás ya no lo hacen.', cita:'Cuando todos se fueron, tú te quedaste. Eso lo cambió todo.' },
+                    feliz:        { personaje:'Xie Lian y Hua Cheng', texto:'Esa reacción tiene sentido. Tener a alguien que siga creyendo en ti puede cambiar completamente una situación.', cita:'Una sola persona creyendo en mí fue suficiente para seguir.' },
+                    sorprendido:  { personaje:'Xie Lian y Hua Cheng', texto:'Quizás no esperarías que alguien siguiera confiando en ti cuando todos los demás se fueron.', cita:'No esperaba que alguien se quedara. Y aun así, ahí estabas.' },
+                    neutral:      { personaje:'Xie Lian y Hua Cheng', texto:'Parece que necesitarías tiempo para creer que alguien realmente se quedaría.', cita:'Tardé en confiar de nuevo, pero valió la pena esperar.' }
+                })
+            }
+        ];
+
+        const REACCION_FALLBACK = { personaje:'Los personajes', texto:'Cada personaje también enfrentó momentos así, a su manera.', cita:'Cada quien enfrenta sus propias batallas, a su manera y a su tiempo.' };
+
+        // ── Mapa CENTRAL: nombre del personaje → archivo de imagen ──
+        const IMG_PERSONAJE = {
+            'Hua Cheng':          'SAN_LANG-removebg-preview.png',
+            'Xie Lian':           'XIE_LIE-removebg-preview.png',
+            'Feng Xin y Mu Qing': 'Feng_Xin_y_Mu_Qing-removebg-preview.png',
+            'Feng Xin':           'Feng_Xin_y_Mu_Qing-removebg-preview.png',
+            'Mu Qing':            'Feng_Xin_y_Mu_Qing-removebg-preview.png',
+            'Shi Qingxuan':       'Shi_Qingxuan-removebg-preview.png',
+            'Qi Rong':            'Qi_Rong-removebg-preview.png',
+            'Yin Yu':             'YIN_YU-removebg-preview.png',
+            'He Xuan':            'He_Xuan__Ming_Yi_-removebg-preview.png',
+        };
+        function getImgPersonaje(nombre) {
+            return IMG_PERSONAJE[nombre] || IMAGEN_BASE_PERSONAJE;
+        }
+
+        // ── Imágenes reales del personaje por emoción (recortadas del collage que subiste). ──
+        const imagenesPersonaje = {
+            feliz:        'personaje_recortes/panel_3_feliz.png',
+            enojado:      'personaje_recortes/panel_5_molesto.png',
+            enojada:      'personaje_recortes/panel_5_molesto.png',
+            estresado:    'personaje_recortes/panel_6_furioso.png',
+            estresada:    'personaje_recortes/panel_6_furioso.png',
+            somnoliento:  'personaje_recortes/panel_7_calmado.png',
+            somnolienta:  'personaje_recortes/panel_7_calmado.png',
+            neutral:      'personaje_recortes/panel_2_confiado.png',
+            sorprendido:  'personaje_recortes/panel_2_confiado.png',
+            sorprendida:  'personaje_recortes/panel_2_confiado.png',
+            triste:       'personaje_recortes/panel_1_esperando.png',
+            miedoso:      'personaje_recortes/panel_1_esperando.png',
+            miedosa:      'personaje_recortes/panel_1_esperando.png',
+            disgustado:   'personaje_recortes/panel_8_juguetona.png',
+            disgustada:   'personaje_recortes/panel_8_juguetona.png',
+        };
+        const IMAGEN_BASE_PERSONAJE = 'PERSONAJEE.png';
+        let ultimaClaseEmocionImg = null;
+
+        let ultimoEscenario = null;
+        let ultimaPreguntaMostrada = '';
+        let esperandoReaccion = false;
+        let preguntaActiva = false;   // solo analiza cuando hay una pregunta en pantalla
+        let timerEsperandoReaccion = null;
+        let timerFallbackCaptura   = null;
+        let contadorInterval = null;
+        let generoElegido = false;
+
+        // ── Muestra el contador 40s superpuesto con la pregunta ──
+        function mostrarContador(pregunta, emoji) {
+            if (!generoElegido) return;
+            const wrap = document.getElementById('contador-wrap');
+            const numEl = document.getElementById('contador-numero');
+            const barEl = document.getElementById('contador-barra');
+            const pqEl  = document.getElementById('contador-pregunta');
+            const emEl  = document.getElementById('contador-emoji');
+
+            pqEl.textContent = pregunta;
+            emEl.textContent = emoji || '🎭';
+            numEl.textContent = '40';
+            barEl.style.transition = 'none';
+            barEl.style.width = '100%';
+            wrap.classList.add('visible');
+
+            if (contadorInterval) clearInterval(contadorInterval);
+            let seg = 40;
+            void barEl.offsetWidth;
+            barEl.style.transition = 'width 1s linear';
+            barEl.style.width = ((39/40)*100) + '%';
+
+            contadorInterval = setInterval(() => {
+                seg--;
+                numEl.textContent = seg;
+                barEl.style.width = ((seg/40)*100) + '%';
+                if (seg <= 0) {
+                    clearInterval(contadorInterval);
+                    contadorInterval = null;
+                    wrap.classList.remove('visible');
+                }
+            }, 1000);
+        }
+
+        function detenerContador() {
+            if (contadorInterval) { clearInterval(contadorInterval); contadorInterval = null; }
+            document.getElementById('contador-wrap').classList.remove('visible');
+        }
+
+        const EMOJIS_EMO = {
+            feliz:'😂', triste:'😭', enojado:'😡', enojada:'😡',
+            estresado:'😨', estresada:'😨', miedoso:'😨', miedosa:'😨',
+            sorprendido:'😲', sorprendida:'😲', disgustado:'😐', disgustada:'😐',
+            neutral:'😐', somnoliento:'😴', somnolienta:'😴'
+        };
+
+        function mostrarPreguntaBase() {
+            const img = document.getElementById('charImg');
+            if (img) {
+                if (ultimaClaseEmocionImg) { img.classList.remove('emo-' + ultimaClaseEmocionImg); ultimaClaseEmocionImg = null; }
+                img.src = IMAGEN_BASE_PERSONAJE;
+                img.classList.add('personaje-base');
+                img.classList.remove('personaje-foto');
+            }
+            ultimoEscenario = escenarios[Math.floor(Math.random() * escenarios.length)];
+            ultimaPreguntaMostrada = ultimoEscenario.pregunta;
+
+            // Mostrar pregunta en el contador superpuesto (40s)
+            mostrarContador(ultimaPreguntaMostrada, '🎭');
+
+            historialCandidatos = [];
+            esperandoReaccion = true;
+            preguntaActiva    = true;   // ahora sí puede analizar emociones
+            clearTimeout(timerEsperandoReaccion);
+            clearTimeout(timerFallbackCaptura);
+            // 3 segundos de gracia para leer, luego analiza
+            timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 3000);
+            // Si después de 30s no captó ninguna reacción, captura con 'neutral' de fallback
+            timerFallbackCaptura = setTimeout(() => {
+                if (preguntaActiva && !enBloqueo) {
+                    enBloqueo = true;
+                    preguntaActiva = false;
+                    capturarReaccion('neutral');
+                }
+            }, 30000);
+        }
+
+        /* Cada pregunta dura 50 segundos antes de cambiar sola si nadie reaccionó */
+        const TIEMPO_CICLO_PREGUNTA = 50000;
+        let cicloPreguntaInterval = null;
+        function reiniciarCicloPreguntas() {
+            mostrarPreguntaBase();
+            if (cicloPreguntaInterval) clearInterval(cicloPreguntaInterval);
+            cicloPreguntaInterval = setInterval(() => {
+                // Solo cambia sola si no hay bloqueo Y el panel de captura está oculto
+                if (!enBloqueo && document.getElementById('panelCaptura').style.display === 'none') {
+                    mostrarPreguntaBase();
+                }
+            }, TIEMPO_CICLO_PREGUNTA);
+        }
+        function iniciarCicloPreguntas() { reiniciarCicloPreguntas(); }
+
+        // ── Cambia el personaje a la imagen de la emoción detectada (ya reaccionó
+        //    a la pregunta que se mostró antes; oculta la burbuja de pregunta) ──
+        function reaccionarPersonaje(emocionClave) {
+            const img = document.getElementById('charImg');
+            if (img) {
+                if (ultimaClaseEmocionImg) img.classList.remove('emo-' + ultimaClaseEmocionImg);
+                void img.offsetWidth; // fuerza reinicio de la animación aunque se repita la misma emoción
+                img.classList.add('emo-' + emocionClave);
+                ultimaClaseEmocionImg = emocionClave;
+
+                const imgEspecifica = imagenesPersonaje[emocionClave];
+                if (imgEspecifica) {
+                    const test = new Image();
+                    test.onload  = () => { img.src = imgEspecifica; img.classList.add('personaje-foto'); img.classList.remove('personaje-base'); };
+                    test.onerror = () => { img.src = IMAGEN_BASE_PERSONAJE; img.classList.add('personaje-base'); img.classList.remove('personaje-foto'); };
+                    test.src = imgEspecifica;
+                } else {
+                    img.src = IMAGEN_BASE_PERSONAJE;
+                    img.classList.add('personaje-base');
+                    img.classList.remove('personaje-foto');
+                }
+            }
+
+            const bubble = document.getElementById('charBubble');
+            if (bubble) { clearTimeout(bubble._timer); bubble.classList.remove('show'); }
+        }
+
+        let generoUsuario    = null;
+        let modelos_cargados = false;
+        let esFuenteCamara   = false; // true = este dispositivo tiene la cámara activa
+
+        function set(id, v) {
+            const e = document.getElementById(id);
+            if (!e) return;
+            e.textContent = v;
+            e.style.opacity   = '';
+            e.style.fontStyle = '';
+            e.style.fontSize  = '';
+        }
+
+        // ── Renderiza un resultado (local o recibido de Firebase) en toda la UI ──
+        function mostrarResultado({ genero, edad, emocionClave, disparaPopup = true }) {
+            const display = emocionClave.charAt(0).toUpperCase() + emocionClave.slice(1);
+            if (genero) { set('genero', genero); set('genero2', genero); }
+            set('edad', edad + ' años');
+            set('edadDisplay', 'Edad: ' + edad);
+            set('emocion', display);
+            set('emocion2', display);
+            set('soon-titulo', display);
+
+            const recs = recomendaciones[emocionClave] || recomendaciones['neutral'];
+            document.getElementById('recomendaciones').innerHTML =
+                recs.map(r => `<li>${r}</li>`).join('');
+
+            reaccionarPersonaje(emocionClave);
+
+            if (disparaPopup) mostrarPopupEmocion(emocionClave, edad, genero);
+        }
+
+        // ── Popup género ──
+        document.getElementById('btn-hombre').addEventListener('click', () => {
+            generoUsuario  = 'Hombre';
+            generoElegido  = true;
+            esFuenteCamara = true;
+            document.getElementById('popup-genero').classList.remove('show');
+            set('genero', 'Hombre'); set('genero2', 'Hombre');
+            // Si la cámara ya estaba corriendo, solo reiniciar preguntas
+            if (vid.srcObject) { reiniciarCicloPreguntas(); }
+            else { iniciarCamara(); }
+        });
+        document.getElementById('btn-mujer').addEventListener('click', () => {
+            generoUsuario  = 'Mujer';
+            generoElegido  = true;
+            esFuenteCamara = true;
+            document.getElementById('popup-genero').classList.remove('show');
+            set('genero', 'Mujer'); set('genero2', 'Mujer');
+            if (vid.srcObject) { reiniciarCicloPreguntas(); }
+            else { iniciarCamara(); }
+        });
+        // "Solo ver": no activa cámara, solo escucha lo que llegue de otro dispositivo por Firebase
+        document.getElementById('btn-soloVer').addEventListener('click', () => {
+            document.getElementById('popup-genero').classList.remove('show');
+            set('genero', 'Esperando...'); set('genero2', 'Esperando...');
+            set('emocion', 'Esperando datos...'); set('emocion2', 'Esperando datos...');
+        });
+
+        // ── Cargar modelos ──
+        async function cargarModelos() {
+            try {
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODELS_URL),
+                    faceapi.nets.ageGenderNet.loadFromUri(MODELS_URL),
+                ]);
+                modelos_cargados = true;
+                console.log('Modelos cargados');
+            } catch(e) {
+                console.error('Error cargando modelos:', e);
+            }
+        }
+
+        // ── Iniciar cámara ──
+        const vid = document.getElementById('videoStream');
+
+        async function iniciarCamara() {
+            try {
+                const constraints = { video: { facingMode: 'user' }, audio: false };
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e) {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+                vid.srcObject = stream;
+                vid.addEventListener('playing', () => {
+                    if (modelos_cargados) iniciarAnalisis();
+                    else {
+                        const esperar = setInterval(() => {
+                            if (modelos_cargados) { clearInterval(esperar); iniciarAnalisis(); }
+                        }, 500);
+                    }
+                });
+            } catch(e) {
+                document.getElementById('cam-status').classList.add('active');
+            }
+        }
+
+        // ── Captura: foto → abre popup grande automáticamente ──
+        let capturaTimer = null;
+        let ultimaFotoCapturada = null;
+        let timerAperturaReaccion = null;
+
+        function capturarReaccion(emocionClave) {
+            if (!esFuenteCamara || !generoElegido || vid.paused || vid.ended || !vid.videoWidth) return;
+
+            preguntaActiva = false;   // deja de analizar hasta la próxima pregunta
+            clearTimeout(timerFallbackCaptura);
+
+            // Flash
+            const flash = document.getElementById('flash-overlay');
+            if (flash) { flash.classList.add('flash'); setTimeout(() => flash.classList.remove('flash'), 180); }
+
+            detenerContador();
+
+            const canvas = document.getElementById('capturaCanvas');
+            canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
+            canvas.getContext('2d').drawImage(vid, 0, 0, canvas.width, canvas.height);
+            const fotoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            ultimaFotoCapturada = fotoDataUrl;
+
+            document.getElementById('capturaFoto').src = fotoDataUrl;
+
+            // Usar la imagen del personaje del escenario actual
+            const datosEscena = ultimoEscenario
+                ? (ultimoEscenario.reacciones[emocionClave] || ultimoEscenario.reacciones['neutral'])
+                : null;
+            const nombrePer = datosEscena ? datosEscena.personaje : null;
+            document.getElementById('capturaPersonaje').src = getImgPersonaje(nombrePer);
+            document.getElementById('panelCaptura').style.display = 'flex';
+            document.getElementById('capturaClickArea').dataset.emocion = emocionClave;
+
+            // Abrir popup grande automáticamente
+            abrirPopupReaccion(emocionClave);
+        }
+
+        // Clic en la miniatura: abre la tarjeta grande de inmediato (sin esperar los 30s)
+        document.getElementById('capturaClickArea').addEventListener('click', () => {
+            const emo = document.getElementById('capturaClickArea').dataset.emocion;
+            if (emo) abrirPopupReaccion(emo);
+        });
+
+        let timerCierreReaccion = null;
+
+        function abrirPopupReaccion(emocionClave) {
+            if (!ultimoEscenario) return;
+            const datos = ultimoEscenario.reacciones[emocionClave]
+                || ultimoEscenario.reacciones['neutral']
+                || REACCION_FALLBACK;
+
+            document.getElementById('pr-pregunta').textContent = ultimoEscenario.pregunta;
+            if (ultimaFotoCapturada) document.getElementById('pr-foto').src = ultimaFotoCapturada;
+            document.getElementById('pr-nombre').textContent = datos.personaje;
+            document.getElementById('pr-cita').textContent = '"' + datos.cita + '"';
+
+            const fotoPerEl = document.getElementById('pr-foto-personaje');
+            if (fotoPerEl) {
+                fotoPerEl.src = getImgPersonaje(datos.personaje);
+                fotoPerEl.style.display = 'block';
+            }
+
+            const carta = document.getElementById('pr-carta');
+            carta.classList.remove('flipped');
+
+            document.getElementById('popup-reaccion').classList.add('show');
+
+            clearTimeout(timerAperturaReaccion);
+            clearTimeout(timerCierreReaccion);
+            timerCierreReaccion = setTimeout(cerrarPopupReaccion, 20000);
+        }
+
+        function cerrarPopupReaccion() {
+            document.getElementById('popup-reaccion').classList.remove('show');
+            clearTimeout(timerCierreReaccion);
+            // NO ocultar panelCaptura — la foto queda visible
+            // NO llamar reiniciarCicloPreguntas — esperar que el usuario pulse "Nueva Pregunta"
+            enBloqueo = false;
+            emocionFijada = null;
+        }
+
+        document.getElementById('pr-carta').addEventListener('click', () => {
+            document.getElementById('pr-carta').classList.toggle('flipped');
+        });
+        document.getElementById('pr-cerrar').addEventListener('click', cerrarPopupReaccion);
+
+        // Botón "Nueva Pregunta" — muestra popup género para la siguiente persona
+        document.getElementById('btn-nueva-pregunta').addEventListener('click', () => {
+            document.getElementById('panelCaptura').style.display = 'none';
+            // Resetear estado para la nueva persona
+            generoUsuario  = null;
+            generoElegido  = false;
+            esFuenteCamara = false;
+            enBloqueo      = false;
+            emocionFijada  = null;
+            preguntaActiva = false;
+            // Detener contador si quedó abierto
+            detenerContador();
+            // Mostrar popup de género
+            document.getElementById('popup-genero').classList.add('show');
+        });
+
+        let emocionFijada    = null;
+        let popupTimer       = null;
+        let enBloqueo        = false;
+        let historialEdad    = [];
+        const VENTANA_EDAD   = 10;
+
+        // ── Confirmación por consistencia: en vez de exigir un puntaje muy alto
+        //    (que deja afuera a quien se expresa suave), o aceptar cualquier
+        //    puntaje bajo (que dispara con cualquier ruido), se pide que la MISMA
+        //    emoción aparezca en varias lecturas seguidas antes de darla por
+        //    válida. ──
+        let historialCandidatos = [];
+        const VENTANA_CONFIRMACION = 1;  // basta con 1 lectura consistente
+
+        async function iniciarAnalisis() {
+            iniciarCicloPreguntas();
+            setInterval(async () => {
+                if (!modelos_cargados || vid.paused || vid.ended) return;
+                if (enBloqueo) return;
+                if (esperandoReaccion) return;
+                if (!preguntaActiva) return;  // no hay pregunta activa, no analizar
+
+                const detecciones = await faceapi
+                    .detectAllFaces(vid, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.4 }))
+                    .withFaceExpressions()
+                    .withAgeAndGender();
+
+                if (!detecciones || detecciones.length === 0) {
+                    set('emocion',  'Sin rostro');
+                    set('emocion2', 'Sin rostro');
+                    historialCandidatos = [];
+                    return;
+                }
+
+                const d = detecciones[0];
+
+                historialEdad.push(d.age);
+                if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
+                const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
+                const edadEstimada = Math.round(edadPromedio);
+
+                const expr = d.expressions;
+                const angry     = expr.angry     || 0;
+                const sad       = expr.sad        || 0;
+                const fearful   = expr.fearful    || 0;
+                const happy     = expr.happy      || 0;
+                const disgusted = expr.disgusted  || 0;
+                const surprised = expr.surprised  || 0;
+                const neutral   = expr.neutral    || 0;
+
+                const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
+
+                let candidato = null;
+                if (maxExpr >= 0.12) {
+                    const esSuenio = neutral > 0.85 && maxExpr < 0.08;
+                    const esEstres = fearful >= 0.15 && angry >= 0.12 && (fearful + angry) > 0.35;
+
+                    // happy tiene prioridad absoluta si es la emoción dominante
+                    if (happy > 0.35 && happy >= maxExpr * 0.8) {
+                        candidato = 'feliz';
+                    } else if (esSuenio) {
+                        candidato = generoUsuario === 'Hombre' ? 'somnoliento' : 'somnolienta';
+                    } else if (esEstres) {
+                        candidato = generoUsuario === 'Hombre' ? 'estresado' : 'estresada';
+                    } else if (surprised > 0.30 && surprised >= maxExpr * 0.7) {
+                        candidato = generoUsuario === 'Hombre' ? 'sorprendido' : 'sorprendida';
+                    } else if (sad > 0.25 && sad >= angry * 1.2) {
+                        candidato = 'triste';
+                    } else if (angry > 0.25 && angry >= happy * 1.5) {
+                        candidato = generoUsuario === 'Hombre' ? 'enojado' : 'enojada';
+                    } else if (disgusted > 0.22 && disgusted >= happy * 1.2) {
+                        candidato = generoUsuario === 'Hombre' ? 'disgustado' : 'disgustada';
+                    } else if (fearful > 0.22 && fearful >= happy * 1.2) {
+                        candidato = generoUsuario === 'Hombre' ? 'miedoso' : 'miedosa';
+                    } else if (happy > 0.20) {
+                        candidato = 'feliz'; // fallback: si hay algo de felicidad, no marcar enojo
+                    } else {
+                        candidato = 'neutral';
+                    }
+                }
+
+                // Expresión clara (happy, surprised dominantes): confirmar de una vez
+                const esExpresionClara = (happy > 0.50 || surprised > 0.45) && candidato !== 'neutral';
+
+                let confirmada = false;
+                if (esExpresionClara) {
+                    confirmada = candidato;
+                    historialCandidatos = [];
+                } else {
+                    historialCandidatos.push(candidato);
+                    if (historialCandidatos.length > VENTANA_CONFIRMACION) historialCandidatos.shift();
+                    confirmada =
+                        historialCandidatos.length === VENTANA_CONFIRMACION &&
+                        historialCandidatos.every(c => c === historialCandidatos[0]) &&
+                        historialCandidatos[0];
+                }
+
+                if (!confirmada) return; // aún no se sostiene lo suficiente, seguimos esperando
+
+                const emocion = confirmada;
+                historialCandidatos = [];
+
+                emocionFijada = emocion;
+                enBloqueo     = true;
+
+                mostrarResultado({ genero: generoUsuario, edad: edadEstimada, emocionClave: emocion });
+
+                // Enviar a Firebase para que cualquier otro dispositivo abierto lo reciba al instante
+                estadoRef.set({
+                    genero: generoUsuario,
+                    edad: edadEstimada,
+                    emocionClave: emocion,
+                    timestamp: Date.now()
+                }).catch(err => console.error('Firebase (guardar):', err));
+
+                // Capturar a 1.5s para que la expresión quede natural en la foto
+                clearTimeout(capturaTimer);
+                capturaTimer = setTimeout(() => capturarReaccion(emocion), 1500);
+
+            }, 1200);
+        }
+
+        // ── Popup pequeño de emoción (esquina inferior). Ahora solo informa unos
+        //    segundos; el reinicio completo del ciclo lo maneja cerrarPopupReaccion(). ──
+        function mostrarPopupEmocion(emocion, edad, genero) {
+            const iconos = {
+                feliz:'😊', triste:'😢', enojado:'😠', enojada:'😠',
+                estresado:'😰', estresada:'😰', miedoso:'😨', miedosa:'😨',
+                sorprendido:'😲', sorprendida:'😲', disgustado:'🤢', disgustada:'🤢',
+                neutral:'😐', somnoliento:'😴', somnolienta:'😴'
+            };
+            const popup = document.getElementById('popup-persona');
+            const display = emocion.charAt(0).toUpperCase() + emocion.slice(1);
+            document.getElementById('popup-icon').textContent      = iconos[emocion] || '😐';
+            document.getElementById('popup-tipo').textContent      = display;
+            document.getElementById('popup-edad').textContent      = `Edad estimada: ${edad} años`;
+            document.getElementById('popup-genero-txt').textContent = genero || generoUsuario || '';
+            popup.classList.add('show');
+
+            if (popupTimer) clearTimeout(popupTimer);
+            popupTimer = setTimeout(() => {
+                popup.classList.remove('show');
+            }, 4000);
+        }
+
+        // ── Escuchar Firebase: así es como la laptop recibe lo que detecta el celular (y viceversa) ──
+        let ultimoTimestampRemoto = 0;
+        estadoRef.on('value', (snap) => {
+            const badge = document.getElementById('sync-badge');
+            const texto = document.getElementById('sync-text');
+            badge.classList.remove('off');
+            texto.textContent = 'Vinculado';
+
+            const data = snap.val();
+            if (!data || !data.emocionClave) return;
+            if (data.timestamp === ultimoTimestampRemoto) return; // ya lo mostramos
+            ultimoTimestampRemoto = data.timestamp;
+
+            // Si ESTE dispositivo es el que tiene la cámara activa, ya se mostró localmente
+            // (evitamos re-disparar el popup dos veces sobre la misma detección).
+            if (esFuenteCamara) return;
+
+            mostrarResultado({
+                genero: data.genero,
+                edad: data.edad,
+                emocionClave: data.emocionClave,
+                disparaPopup: true
+            });
+        }, (err) => {
+            const badge = document.getElementById('sync-badge');
+            const texto = document.getElementById('sync-text');
+            badge.classList.add('off');
+            texto.textContent = 'Sin conexión a Firebase';
+            console.error('Firebase (conexión):', err);
+        });
+
+        // ── Inicio ──
+        cargarModelos();
+        mostrarPopupGenero();
+
+        function mostrarPopupGenero() {
+            document.getElementById('popup-genero').classList.add('show');
+        }
+    </script>
+</body>
+</html>
