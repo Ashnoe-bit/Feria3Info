@@ -41,8 +41,16 @@ persona_anterior  = {'genero': None, 'edad_rango': None}
 nueva_persona_data = {'activo': False, 'genero': 'N/A', 'edad': 'N/A'}
 
 # Suavizado de edad (mediana móvil: ignora lecturas locas como 5 o 80 años)
-historial_edad = []
-VENTANA_EDAD   = 10  # frames a considerar
+historial_edad  = []
+VENTANA_EDAD    = 10   # frames a considerar
+CONFIANZA_CARA  = 0.60 # confianza mínima del rostro para aceptar la edad
+SALTO_MAXIMO    = 12   # años de diferencia para tratar una lectura como anómala
+edad_estable    = 'N/A'
+sin_cara        = 0    # lecturas consecutivas sin rostro confiable
+saltos_seguidos = 0    # lecturas consecutivas muy distintas a la mediana
+
+# Solo un análisis a la vez (si se acumulan hilos, el historial se corrompe)
+analisis_lock = threading.Lock()
 
 # Histéresis de emoción: evita que "parpadee" entre emociones parecidas
 emocion_estado = {'actual': 'neutral', 'candidata': None, 'veces': 0}
@@ -98,6 +106,11 @@ UMBRAL_ESTRES = 40.0
 
 def analizar_frame(frame):
     global resultado_actual, persona_anterior, nueva_persona_data, historial_edad
+    global edad_estable, sin_cara, saltos_seguidos
+
+    # Si ya hay un análisis en curso, descartar este frame
+    if not analisis_lock.acquire(blocking=False):
+        return frame
 
     try:
         resultado = DeepFace.analyze(
@@ -119,15 +132,41 @@ def analizar_frame(frame):
         else:
             genero = 'N/A'
 
-        # ── Edad suavizada (mediana móvil: robusta ante valores extremos) ──
-        edad_raw = resultado.get('age', None)
-        if edad_raw is not None:
+        # ── Edad suavizada (mediana + filtro de lecturas falsas) ──
+        edad_raw       = resultado.get('age', None)
+        cara_confianza = resultado.get('face_confidence', 1.0)
+
+        # Sin rostro confiable, DeepFace "inventa" edades: no aceptar nada
+        valida = edad_raw is not None and cara_confianza >= CONFIANZA_CARA
+
+        if valida and historial_edad:
+            # Lectura muy lejana a la mediana = anómala. Si se repite
+            # 3 veces seguidas es una persona nueva: reiniciar historial.
+            if abs(edad_raw - statistics.median(historial_edad)) > SALTO_MAXIMO:
+                saltos_seguidos += 1
+                if saltos_seguidos >= 3:
+                    historial_edad.clear()
+                    saltos_seguidos = 0
+                else:
+                    valida = False
+            else:
+                saltos_seguidos = 0
+
+        if valida:
+            sin_cara = 0
             historial_edad.append(int(edad_raw))
             if len(historial_edad) > VENTANA_EDAD:
                 historial_edad.pop(0)
-            edad = round(statistics.median(historial_edad))
+            edad_estable = round(statistics.median(historial_edad))
         else:
-            edad = 'N/A'
+            sin_cara += 1
+            if sin_cara >= 8:
+                # Nadie frente a la cámara: reiniciar para la próxima persona
+                historial_edad.clear()
+                edad_estable = 'N/A'
+                sin_cara = 0
+
+        edad = edad_estable
 
         rango = edad_a_rango(edad)
 
@@ -193,6 +232,8 @@ def analizar_frame(frame):
 
     except Exception as e:
         print(f"[Análisis] Error: {e}")
+    finally:
+        analisis_lock.release()
 
     return frame
 
