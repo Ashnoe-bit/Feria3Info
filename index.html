@@ -1112,7 +1112,21 @@
             neutral:'😐', somnoliento:'😴', somnolienta:'😴'
         };
 
+        // ── Limpia la info de la persona anterior cuando empieza una nueva pregunta ──
+        function limpiarAnalisisAnterior() {
+            set('edad', '—');
+            set('edadDisplay', 'Edad: —');
+            set('emocion', 'Analizando...');
+            set('emocion2', 'Analizando...');
+            set('soon-titulo', 'Analizando...');
+            document.getElementById('recomendaciones').innerHTML =
+                '<li style="opacity:.4; font-style:italic;">Esperando tu reacción...</li>';
+            document.getElementById('popup-persona').classList.remove('show');
+            historialEdad = [];
+        }
+
         function mostrarPreguntaBase() {
+            limpiarAnalisisAnterior();
             const img = document.getElementById('charImg');
             if (img) {
                 if (ultimaClaseEmocionImg) { img.classList.remove('emo-' + ultimaClaseEmocionImg); ultimaClaseEmocionImg = null; }
