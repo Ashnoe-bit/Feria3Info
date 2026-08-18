@@ -73,9 +73,9 @@
         .ssym { position:absolute; display:flex; flex-direction:column; gap:9px; color:rgba(255,64,112,.38); font-size:.8rem; top:50%; transform:translateY(-50%); z-index:2; }
         .ssym.L{left:7px;} .ssym.R{right:7px;}
 
-        .main-content { display:flex; position:relative; z-index:2; flex-wrap:wrap; }
+        .main-content { display:flex; position:relative; z-index:2; flex-wrap:wrap; gap:8px; }
 
-        .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 0 8px; min-width:0; }
+        .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 4px 12px; min-width:0; }
 
         .cam-outer { position:relative; width:clamp(200px, 42vw, 260px); aspect-ratio:1/1; }
 
@@ -100,7 +100,7 @@
             clip-path:circle(50%);
         }
 
-        .cam-label { font-size:.56rem; letter-spacing:5px; color:rgba(255,150,170,.5); text-transform:uppercase; text-align:center; }
+        .cam-label { font-size:.56rem; letter-spacing:3px; color:rgba(255,150,170,.5); text-transform:uppercase; text-align:center; padding:0 4px; line-height:1.5; }
         .cam-status { font-size:.55rem; color:rgba(255,110,120,.6); text-align:center; letter-spacing:1px; display:none; max-width:220px; }
         .cam-status.active { display:block; }
         .ck { position:absolute; color:rgba(255,150,180,.5); font-size:.9rem; pointer-events:none; z-index:4; }
@@ -1396,6 +1396,7 @@
             enBloqueo      = false;
             emocionFijada  = null;
             preguntaActiva = false;
+            limpiarAnalisisAnterior();
             // Detener contador si quedó abierto
             detenerContador();
             // Mostrar popup de género
