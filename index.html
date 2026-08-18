@@ -1444,33 +1444,47 @@
                 const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
                 const edadEstimada = Math.round(edadPromedio);
 
-                // ── Clasificación simple y directa: se mira la expresión dominante
-                //    del modelo y se exige un mínimo de intensidad. Sin reglas
-                //    cruzadas: la que gana, gana. ──
+                // ── Clasificación: se mira la expresión dominante del modelo con un
+                //    umbral PROPIO por emoción (face-api da puntajes altos para happy
+                //    pero muy bajos para surprised/angry/disgusted, así que cada una
+                //    necesita su punto de corte). Sin reglas cruzadas: la que gana, gana. ──
                 const expr = d.expressions;
+                // Ver puntajes en consola (F12) para ajustar umbrales si hace falta
+                console.log('expresiones', Object.fromEntries(
+                    Object.entries(expr).map(([k, v]) => [k, +v.toFixed(2)])
+                ));
                 const gM = (base) => generoUsuario === 'Hombre' ? base + 'o' : base + 'a';
 
-                // Mapear las salidas de face-api a nuestras claves, con umbral mínimo
-                const UMBRAL = 0.30; // debajo de esto la señal es muy débil para fiarse
                 const candidatos = [
-                    { clave: 'feliz',       score: expr.happy     || 0 },
-                    { clave: gM('sorprendid'), score: expr.surprised || 0 },
-                    { clave: gM('disgustad'), score: expr.disgusted || 0 },
-                    { clave: gM('miedos'),   score: expr.fearful   || 0 },
-                    { clave: gM('enojad'),   score: expr.angry     || 0 },
-                    { clave: 'triste',       score: expr.sad       || 0 },
+                    { clave: 'feliz',           score: expr.happy     || 0, umbral: 0.25 },
+                    { clave: gM('sorprendid'),  score: expr.surprised || 0, umbral: 0.15 },
+                    { clave: gM('disgustad'),   score: expr.disgusted || 0, umbral: 0.10 },
+                    { clave: gM('miedos'),      score: expr.fearful   || 0, umbral: 0.12 },
+                    { clave: gM('enojad'),      score: expr.angry     || 0, umbral: 0.13 },
+                    { clave: 'triste',          score: expr.sad       || 0, umbral: 0.35 },
                 ].sort((a, b) => b.score - a.score);
 
-                const mejor = candidatos[0];
+                // Cara muy neutra: ni probar, directo a neutral
+                const neutralScore = expr.neutral || 0;
                 let candidato;
-                if (mejor.score >= UMBRAL && (mejor.score - candidatos[1].score) >= 0.05) {
-                    candidato = mejor.clave;
-                } else {
+                if (neutralScore > 0.90 && candidatos[0].score < 0.25) {
                     candidato = 'neutral';
+                } else {
+                    // Entre las que pasan su umbral, gana la de mayor puntaje
+                    // normalizado (score / umbral) para que comparen en igualdad
+                    const pasan = candidatos.filter(c => c.score >= c.umbral);
+                    candidato = pasan.length
+                        ? pasan.sort((a, b) => (b.score / b.umbral) - (a.score / a.umbral))[0].clave
+                        : 'neutral';
                 }
 
                 // Expresión muy marcada (sonrisa amplia, sorpresa clara): confirmar ya
-                const esExpresionClara = mejor.score >= 0.60 && candidato !== 'neutral';
+                const esExpresionClara = candidato !== 'neutral' && (
+                    (expr.happy     || 0) >= 0.55 ||
+                    (expr.surprised || 0) >= 0.35 ||
+                    (expr.angry     || 0) >= 0.30 ||
+                    (expr.sad       || 0) >= 0.45
+                );
 
                 let confirmada = false;
                 if (esExpresionClara) {
