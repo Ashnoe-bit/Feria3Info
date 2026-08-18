@@ -1415,7 +1415,7 @@
         //    emoción aparezca en varias lecturas seguidas antes de darla por
         //    válida. ──
         let historialCandidatos = [];
-        const VENTANA_CONFIRMACION = 1;  // basta con 1 lectura consistente
+        const VENTANA_CONFIRMACION = 2;  // la misma emoción 2 lecturas seguidas
 
         async function iniciarAnalisis() {
             iniciarCicloPreguntas();
@@ -1444,48 +1444,33 @@
                 const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
                 const edadEstimada = Math.round(edadPromedio);
 
+                // ── Clasificación simple y directa: se mira la expresión dominante
+                //    del modelo y se exige un mínimo de intensidad. Sin reglas
+                //    cruzadas: la que gana, gana. ──
                 const expr = d.expressions;
-                const angry     = expr.angry     || 0;
-                const sad       = expr.sad        || 0;
-                const fearful   = expr.fearful    || 0;
-                const happy     = expr.happy      || 0;
-                const disgusted = expr.disgusted  || 0;
-                const surprised = expr.surprised  || 0;
-                const neutral   = expr.neutral    || 0;
+                const gM = (base) => generoUsuario === 'Hombre' ? base + 'o' : base + 'a';
 
-                const maxExpr = Math.max(angry, sad, fearful, happy, disgusted, surprised);
+                // Mapear las salidas de face-api a nuestras claves, con umbral mínimo
+                const UMBRAL = 0.30; // debajo de esto la señal es muy débil para fiarse
+                const candidatos = [
+                    { clave: 'feliz',       score: expr.happy     || 0 },
+                    { clave: gM('sorprendid'), score: expr.surprised || 0 },
+                    { clave: gM('disgustad'), score: expr.disgusted || 0 },
+                    { clave: gM('miedos'),   score: expr.fearful   || 0 },
+                    { clave: gM('enojad'),   score: expr.angry     || 0 },
+                    { clave: 'triste',       score: expr.sad       || 0 },
+                ].sort((a, b) => b.score - a.score);
 
-                let candidato = null;
-                if (maxExpr >= 0.12) {
-                    const esSuenio = neutral > 0.85 && maxExpr < 0.08;
-                    const esEstres = fearful >= 0.15 && angry >= 0.12 && (fearful + angry) > 0.35;
-
-                    // happy tiene prioridad absoluta si es la emoción dominante
-                    if (happy > 0.35 && happy >= maxExpr * 0.8) {
-                        candidato = 'feliz';
-                    } else if (esSuenio) {
-                        candidato = generoUsuario === 'Hombre' ? 'somnoliento' : 'somnolienta';
-                    } else if (esEstres) {
-                        candidato = generoUsuario === 'Hombre' ? 'estresado' : 'estresada';
-                    } else if (surprised > 0.30 && surprised >= maxExpr * 0.7) {
-                        candidato = generoUsuario === 'Hombre' ? 'sorprendido' : 'sorprendida';
-                    } else if (sad > 0.25 && sad >= angry * 1.2) {
-                        candidato = 'triste';
-                    } else if (angry > 0.25 && angry >= happy * 1.5) {
-                        candidato = generoUsuario === 'Hombre' ? 'enojado' : 'enojada';
-                    } else if (disgusted > 0.22 && disgusted >= happy * 1.2) {
-                        candidato = generoUsuario === 'Hombre' ? 'disgustado' : 'disgustada';
-                    } else if (fearful > 0.22 && fearful >= happy * 1.2) {
-                        candidato = generoUsuario === 'Hombre' ? 'miedoso' : 'miedosa';
-                    } else if (happy > 0.20) {
-                        candidato = 'feliz'; // fallback: si hay algo de felicidad, no marcar enojo
-                    } else {
-                        candidato = 'neutral';
-                    }
+                const mejor = candidatos[0];
+                let candidato;
+                if (mejor.score >= UMBRAL && (mejor.score - candidatos[1].score) >= 0.05) {
+                    candidato = mejor.clave;
+                } else {
+                    candidato = 'neutral';
                 }
 
-                // Expresión clara (happy, surprised dominantes): confirmar de una vez
-                const esExpresionClara = (happy > 0.50 || surprised > 0.45) && candidato !== 'neutral';
+                // Expresión muy marcada (sonrisa amplia, sorpresa clara): confirmar ya
+                const esExpresionClara = mejor.score >= 0.60 && candidato !== 'neutral';
 
                 let confirmada = false;
                 if (esExpresionClara) {
