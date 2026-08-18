@@ -8,14 +8,14 @@
     <style>
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-        html { height:100%; }
+        html { height:100%; font-size:125%; }
 
         body {
             font-family:'Raleway',sans-serif;
-            height:100vh; height:100dvh; width:100vw;
+            min-height:100vh; min-height:100dvh; width:100vw;
             display:flex; flex-direction:column;
-            align-items:center;
-            padding:12px 18px; overflow-x:hidden;
+            align-items:center; justify-content:center;
+            padding:14px 20px; overflow-x:hidden;
             position:relative;
             background-color:#1e0008;
             background-image:
@@ -34,7 +34,7 @@
         .petal { position:fixed; pointer-events:none; z-index:0; color:rgba(255,110,140,.22); animation:petalFall linear infinite; }
         @keyframes petalFall { 0%{transform:translateY(-30px) rotate(0deg);opacity:0;} 8%{opacity:1;} 92%{opacity:.3;} 100%{transform:translateY(101vh) rotate(540deg);opacity:0;} }
 
-        .page-wrap { position:relative; z-index:1; width:100%; flex:1; min-height:0; max-width:1240px; display:flex; flex-direction:column; align-items:stretch; gap:8px; }
+        .page-wrap { position:relative; z-index:1; width:100%; flex:1; min-height:0; max-width:1180px; display:flex; flex-direction:column; align-items:center; gap:9px; }
         .main-title { font-family:'Cinzel',serif; font-size:clamp(1.3rem,3.2vw,2.8rem); font-weight:900; color:#fff; letter-spacing:clamp(3px,1.2vw,7px); text-transform:uppercase; text-align:center; text-shadow:0 0 14px rgba(255,64,112,.95),0 0 38px rgba(255,64,112,.5),2px 2px 8px rgba(0,0,0,.9); }
 
         .hero-row { display:flex; gap:10px; width:100%; align-items:stretch; flex-wrap:wrap; flex:1 1 auto; min-height:0; }
@@ -64,11 +64,11 @@
 
         .topbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; position:relative; z-index:2; }
         .tl { flex:1; height:2px; background:linear-gradient(90deg,transparent,#ff4070,transparent); box-shadow:0 0 6px #ff4070; }
-        .ts { color:#ff4070; font-size:1rem; text-shadow:0 0 8px #ff4070; }
+        .ts { color:#ff4070; font-size:.88rem; text-shadow:0 0 8px #ff4070; }
         .td { width:7px; height:7px; background:#ff4070; border-radius:50%; box-shadow:0 0 8px #ff4070; }
 
         .caps-row { display:flex; gap:8px; justify-content:center; margin-bottom:8px; position:relative; z-index:2; }
-        .cap { padding:3px 14px; border-radius:20px; background:rgba(20,0,5,.6); border:1px solid rgba(255,64,112,.45); font-size:.82rem; color:rgba(255,200,220,.85); letter-spacing:2px; box-shadow:0 0 8px rgba(255,64,112,.25); }
+        .cap { padding:3px 14px; border-radius:20px; background:rgba(20,0,5,.6); border:1px solid rgba(255,64,112,.45); font-size:.72rem; color:rgba(255,200,220,.85); letter-spacing:2px; box-shadow:0 0 8px rgba(255,64,112,.25); }
 
         .ssym { position:absolute; display:flex; flex-direction:column; gap:9px; color:rgba(255,64,112,.38); font-size:.8rem; top:50%; transform:translateY(-50%); z-index:2; }
         .ssym.L{left:7px;} .ssym.R{right:7px;}
@@ -77,7 +77,7 @@
 
         .cam-zone { flex:0 0 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:4px 0 8px; min-width:0; }
 
-        .cam-outer { position:relative; width:min(300px, 40vh, 34vw); aspect-ratio:1/1; }
+        .cam-outer { position:relative; width:min(clamp(200px, 42vw, 260px), 44vh); aspect-ratio:1/1; }
 
         .cam-ring { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%; }
         .cr1 { width:100%; height:100%; border:2.5px solid rgba(255,64,112,.5); box-shadow:0 0 14px rgba(255,64,112,.3); animation:spinR 6s linear infinite; }
@@ -100,13 +100,13 @@
             clip-path:circle(50%);
         }
 
-        .cam-label { font-size:.68rem; letter-spacing:5px; color:rgba(255,150,170,.5); text-transform:uppercase; text-align:center; }
-        .cam-status { font-size:.65rem; color:rgba(255,110,120,.6); text-align:center; letter-spacing:1px; display:none; max-width:220px; }
+        .cam-label { font-size:.56rem; letter-spacing:5px; color:rgba(255,150,170,.5); text-transform:uppercase; text-align:center; }
+        .cam-status { font-size:.55rem; color:rgba(255,110,120,.6); text-align:center; letter-spacing:1px; display:none; max-width:220px; }
         .cam-status.active { display:block; }
         .ck { position:absolute; color:rgba(255,150,180,.5); font-size:.9rem; pointer-events:none; z-index:4; }
 
-        .char-zone { flex:1; position:relative; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; min-height:200px; min-width:160px; }
-        .char-zone img { height:min(350px, 32vw, 42vh); width:auto; max-width:100%; object-fit:contain; object-position:bottom; display:block; transition:filter .5s ease, border-radius .3s ease; }
+        .char-zone { flex:1; position:relative; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; min-height:260px; min-width:160px; }
+        .char-zone img { height:min(clamp(200px, 32vw, 350px), 46vh); width:auto; max-width:100%; object-fit:contain; object-position:bottom; display:block; transition:filter .5s ease, border-radius .3s ease; }
         /* Imagen base (personaje ilustrado suelto, fondo transparente): efecto luminoso original */
         .char-zone img.personaje-base { mix-blend-mode:lighten; filter:drop-shadow(-6px 0 20px rgba(200,0,40,.4)); }
         /* Recortes reales con fondo removido: se muestran sin marco, con desvanecido suave
@@ -156,17 +156,17 @@
         }
         .char-bubble.show { opacity:1; transform:translateX(-50%) scale(1); }
 
-        .sidebar { flex:0 0 235px; display:flex; flex-direction:column; gap:8px; min-width:210px; }
+        .sidebar { flex:0 0 190px; display:flex; flex-direction:column; gap:8px; min-width:170px; }
         .scard { background:rgba(22,0,6,.65); border:1px solid rgba(255,64,112,.28); border-radius:9px; padding:10px 12px; position:relative; }
         .scard::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,#ff4070,#c00030); border-radius:9px 0 0 9px; box-shadow:0 0 7px #ff4070; }
         .srow { display:flex; gap:6px; }
         .shalf { flex:1; }
-        .sl { font-size:.66rem; letter-spacing:3px; text-transform:uppercase; color:rgba(255,150,170,.6); margin-bottom:3px; }
-        .sv  { font-family:'Noto Serif',serif; font-size:1.32rem; color:#fff; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
-        .svi { font-family:'Noto Serif',serif; font-size:1.22rem; color:#fff; font-style:italic; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
+        .sl { font-size:.52rem; letter-spacing:3px; text-transform:uppercase; color:rgba(255,150,170,.6); margin-bottom:3px; }
+        .sv  { font-family:'Noto Serif',serif; font-size:1.08rem; color:#fff; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
+        .svi { font-family:'Noto Serif',serif; font-size:.98rem; color:#fff; font-style:italic; font-weight:700; text-shadow:0 0 8px rgba(255,80,120,.45); }
         .sdiv { width:1px; background:rgba(255,64,112,.22); }
         .rec-list { list-style:none; margin-top:5px; }
-        .rec-list li { font-size:.92rem; color:rgba(255,200,215,.88); padding:5px 0 5px 14px; position:relative; border-bottom:1px solid rgba(255,64,112,.08); }
+        .rec-list li { font-size:.76rem; color:rgba(255,200,215,.88); padding:3px 0 3px 13px; position:relative; border-bottom:1px solid rgba(255,64,112,.08); }
         .rec-list li:last-child { border-bottom:none; }
         .rec-list li::before { content:'›'; position:absolute; left:0; color:#ff4070; font-size:.9rem; text-shadow:0 0 5px #ff4070; }
 
@@ -174,7 +174,7 @@
         .bl { flex:1 1 260px; min-height:128px; } .br { flex:1 1 260px; min-height:128px; }
 
         .chat-inner { height:100%; flex:1; display:flex; flex-direction:column; gap:5px; }
-        .chat-top { font-size:.7rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
+        .chat-top { font-size:.56rem; letter-spacing:4px; text-transform:uppercase; color:rgba(255,150,170,.58); text-align:center; border-bottom:1px solid rgba(255,64,112,.16); padding-bottom:4px; }
         .chat-body { display:flex; gap:8px; flex:1; align-items:center; flex-wrap:wrap; }
         .chat-kanji { font-size:1.4rem; color:rgba(255,64,112,.2); writing-mode:vertical-rl; font-weight:bold; letter-spacing:4px; flex-shrink:0; }
         .chat-data { flex:1; display:flex; flex-direction:column; gap:5px; min-width:120px; }
@@ -182,18 +182,18 @@
         .mb { height:3px; border-radius:2px; background:linear-gradient(90deg,#ff4070,#ff90b0); box-shadow:0 0 4px #ff4070; animation:bPulse 2s ease-in-out infinite; }
         .mb:nth-child(1){width:50px;} .mb:nth-child(2){width:34px;animation-delay:.3s;} .mb:nth-child(3){width:42px;animation-delay:.6s;}
         @keyframes bPulse{0%,100%{opacity:.4;}50%{opacity:1;}}
-        .chat-foot { font-size:.62rem; letter-spacing:3px; color:rgba(255,150,170,.25); text-align:center; text-transform:uppercase; }
+        .chat-foot { font-size:.52rem; letter-spacing:3px; color:rgba(255,150,170,.25); text-align:center; text-transform:uppercase; }
 
         .soon-inner { height:100%; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; }
         .soon-sub { font-size:.54rem; letter-spacing:5px; color:rgba(255,150,170,.48); text-transform:uppercase; }
-        .soon-title { font-family:'Noto Serif',serif; font-size:clamp(1.3rem,3vw,1.9rem); color:#fff; font-weight:700; font-style:italic; text-shadow:0 0 14px rgba(255,64,112,.75),0 0 30px rgba(255,64,112,.38); }
-        .soon-edad { font-family:'Noto Serif',serif; font-size:.95rem; color:rgba(255,180,200,.75); letter-spacing:2px; }
+        .soon-title { font-family:'Noto Serif',serif; font-size:clamp(1.15rem,2.6vw,1.55rem); color:#fff; font-weight:700; font-style:italic; text-shadow:0 0 14px rgba(255,64,112,.75),0 0 30px rgba(255,64,112,.38); }
+        .soon-edad { font-family:'Noto Serif',serif; font-size:.78rem; color:rgba(255,180,200,.75); letter-spacing:2px; }
         .sdots { display:flex; gap:6px; }
         .sdot { width:7px; height:7px; border-radius:50%; background:#ff4070; box-shadow:0 0 8px #ff4070; animation:dBlink 1.4s ease-in-out infinite; }
         .sdot:nth-child(2){animation-delay:.2s;} .sdot:nth-child(3){animation-delay:.4s;}
         @keyframes dBlink{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
 
-        .footer { text-align:center; margin-top:7px; font-size:.68rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
+        .footer { text-align:center; margin-top:7px; font-size:.56rem; letter-spacing:3px; color:rgba(255,120,150,.22); text-transform:uppercase; position:relative; z-index:1; }
 
         /* ── Panel de captura de reacción (miniatura) ── */
         .captura-inner { height:100%; flex:1; display:flex; flex-direction:column; gap:8px; }
@@ -257,7 +257,7 @@
         @media (max-width:480px){ #popup-reaccion{ padding:18px 16px; } .pr-foto,.pr-carta{ max-width:100px; } }
 
         .sync-badge {
-            font-size:.6rem; letter-spacing:2px; text-transform:uppercase;
+            font-size:.5rem; letter-spacing:2px; text-transform:uppercase;
             color:rgba(120,255,170,.75); text-align:center; margin-top:2px;
             display:flex; align-items:center; justify-content:center; gap:5px;
         }
@@ -312,17 +312,17 @@
             box-shadow:0 0 20px rgba(255,64,112,.6);
         }
         .popup-icon { font-size:2rem; margin-bottom:4px; }
-        .popup-tipo { font-family:'Cinzel',serif; font-size:1.3rem; font-weight:900; color:#fff; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 14px rgba(255,64,112,.9); }
-        .popup-edad { font-family:'Noto Serif',serif; font-size:.98rem; color:rgba(255,180,200,.8); margin-top:4px; letter-spacing:2px; }
-        .popup-genero-txt { font-size:.7rem; letter-spacing:3px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:2px; }
-        .popup-sub  { font-size:.62rem; letter-spacing:4px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:6px; }
+        .popup-tipo { font-family:'Cinzel',serif; font-size:1.1rem; font-weight:900; color:#fff; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 14px rgba(255,64,112,.9); }
+        .popup-edad { font-family:'Noto Serif',serif; font-size:.8rem; color:rgba(255,180,200,.8); margin-top:4px; letter-spacing:2px; }
+        .popup-genero-txt { font-size:.6rem; letter-spacing:3px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:2px; }
+        .popup-sub  { font-size:.52rem; letter-spacing:4px; color:rgba(255,150,170,.5); text-transform:uppercase; margin-top:6px; }
 
         /* ══════════════════════════════════════════════
            RESPONSIVE — laptops medianas / pantallas 13"-15"
            ══════════════════════════════════════════════ */
         @media (max-width:1200px) {
-            .page-wrap { max-width:96%; }
-            .sidebar { flex:0 0 205px; min-width:185px; }
+            .page-wrap { max-width:94%; }
+            .sidebar { flex:0 0 170px; min-width:150px; }
         }
 
         /* ══════════════════════════════════════════════
@@ -378,8 +378,8 @@
 
             .char-zone { min-height:0; display:none; }
 
-            .sl { font-size:.58rem; }
-            .sv, .svi { font-size:1rem; }
+            .sl { font-size:.5rem; }
+            .sv, .svi { font-size:.85rem; }
 
             .popup-genero { padding:24px 20px; min-width:auto; width:88vw; }
             .gen-btn { padding:9px 18px; font-size:.82rem; }
@@ -438,7 +438,7 @@
                     <div class="main-content">
                         <!-- ZONA CÁMARA -->
                         <div class="cam-zone">
-                            <div style="font-family:'Noto Serif',serif; font-size:.95rem; color:rgba(255,220,230,.7); letter-spacing:3px; margin-bottom:6px; text-shadow:0 0 8px rgba(255,64,112,.5);">Chat</div>
+                            <div style="font-family:'Noto Serif',serif; font-size:.78rem; color:rgba(255,220,230,.7); letter-spacing:3px; margin-bottom:6px; text-shadow:0 0 8px rgba(255,64,112,.5);">Chat</div>
                             <div class="cam-outer">
                                 <div class="cam-ring cr3"></div>
                                 <div class="cam-ring cr2"></div>
@@ -502,12 +502,12 @@
                         <div class="srow">
                             <div class="shalf">
                                 <div class="sl">Genero</div>
-                                <div class="sv" id="genero" style="opacity:.4; font-style:italic;">Analizando...</div>
+                                <div class="sv" id="genero" style="opacity:.4; font-style:italic; font-size:.8rem;">Analizando...</div>
                             </div>
                             <div class="sdiv"></div>
                             <div class="shalf" style="padding-left:8px;">
                                 <div class="sl">Edad</div>
-                                <div class="sv" id="edad" style="opacity:.4; font-style:italic;">—</div>
+                                <div class="sv" id="edad" style="opacity:.4; font-style:italic; font-size:.8rem;">—</div>
                             </div>
                         </div>
                     </div>
@@ -515,7 +515,7 @@
                 <div class="neon-box scard">
                     <div class="nb-inner" style="padding:9px 11px;">
                         <div class="sl">Emocion Detectada</div>
-                        <div class="svi" id="emocion" style="opacity:.4; font-style:italic;">Analizando...</div>
+                        <div class="svi" id="emocion" style="opacity:.4; font-style:italic; font-size:.8rem;">Analizando...</div>
                     </div>
                 </div>
                 <div class="neon-box scard" style="flex:1;">
@@ -538,8 +538,8 @@
                         <div class="chat-body">
                             <div class="chat-kanji">無<br>限<br>∞</div>
                             <div class="chat-data">
-                                <div><div class="sl">Genero</div><div class="sv" id="genero2" style="opacity:.4; font-style:italic;">Analizando...</div></div>
-                                <div><div class="sl">Emocion</div><div class="svi" id="emocion2" style="opacity:.4; font-style:italic;">Analizando...</div></div>
+                                <div><div class="sl">Genero</div><div class="sv" id="genero2" style="font-size:.92rem; opacity:.4; font-style:italic;">Analizando...</div></div>
+                                <div><div class="sl">Emocion</div><div class="svi" id="emocion2" style="font-size:.88rem; opacity:.4; font-style:italic;">Analizando...</div></div>
                             </div>
                             <div class="mbars"><div class="mb"></div><div class="mb"></div><div class="mb"></div></div>
                         </div>
