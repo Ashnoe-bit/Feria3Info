@@ -1,6 +1,7 @@
 from flask import Flask, render_template, Response, jsonify
 import cv2
 import numpy as np
+import statistics
 from deepface import DeepFace
 import platform
 import socket
@@ -39,9 +40,14 @@ lock = threading.Lock()
 persona_anterior  = {'genero': None, 'edad_rango': None}
 nueva_persona_data = {'activo': False, 'genero': 'N/A', 'edad': 'N/A'}
 
-# Suavizado de edad (media móvil de las últimas N lecturas)
+# Suavizado de edad (mediana móvil: ignora lecturas locas como 5 o 80 años)
 historial_edad = []
-VENTANA_EDAD   = 6   # frames para promediar
+VENTANA_EDAD   = 10  # frames a considerar
+
+# Histéresis de emoción: evita que "parpadee" entre emociones parecidas
+emocion_estado = {'actual': 'neutral', 'candidata': None, 'veces': 0}
+VECES_MINIMAS  = 3     # frames consecutivos para confirmar cambio
+MARGEN_CAMBIO  = 15.0  # % extra que necesita la nueva emoción para ganar
 
 
 def obtener_ip_local():
@@ -113,13 +119,13 @@ def analizar_frame(frame):
         else:
             genero = 'N/A'
 
-        # ── Edad suavizada (media móvil) ──
+        # ── Edad suavizada (mediana móvil: robusta ante valores extremos) ──
         edad_raw = resultado.get('age', None)
         if edad_raw is not None:
             historial_edad.append(int(edad_raw))
             if len(historial_edad) > VENTANA_EDAD:
                 historial_edad.pop(0)
-            edad = round(sum(historial_edad) / len(historial_edad))
+            edad = round(statistics.median(historial_edad))
         else:
             edad = 'N/A'
 
@@ -131,18 +137,36 @@ def analizar_frame(frame):
         confianza   = emociones.get(emocion_raw, 0.0)
 
         if confianza < CONFIANZA_MINIMA:
-            # Confianza baja: mantener última emoción conocida o neutral
+            # Confianza baja: mantener última emoción conocida
+            emocion = emocion_estado['actual']
             with lock:
-                emocion    = resultado_actual.get('emocion', 'neutral') or 'neutral'
-                confianza  = resultado_actual.get('confianza', 0.0)
+                confianza = resultado_actual.get('confianza', 0.0)
         else:
             # Detectar estrés: miedo + enojo altos al mismo tiempo
             fear_pct  = emociones.get('fear',  0.0)
             angry_pct = emociones.get('angry', 0.0)
             if (fear_pct + angry_pct) > UMBRAL_ESTRES and emocion_raw in ('fear', 'angry'):
-                emocion = 'estresado' if genero == 'Hombre' else 'estresada'
+                emocion_detectada = 'estresado' if genero == 'Hombre' else 'estresada'
             else:
-                emocion = mapear_emocion(emocion_raw, genero)
+                emocion_detectada = mapear_emocion(emocion_raw, genero)
+
+            # Histéresis: la nueva emoción debe ganar por margen y repetirse
+            if emocion_detectada == emocion_estado['actual']:
+                emocion_estado['candidata'] = None
+                emocion_estado['veces']     = 0
+            else:
+                if emocion_detectada == emocion_estado['candidata']:
+                    emocion_estado['veces'] += 1
+                else:
+                    emocion_estado['candidata'] = emocion_detectada
+                    emocion_estado['veces']     = 1
+
+                if emocion_estado['veces'] >= VECES_MINIMAS and confianza >= CONFIANZA_MINIMA + MARGEN_CAMBIO:
+                    emocion_estado['actual']   = emocion_detectada
+                    emocion_estado['candidata'] = None
+                    emocion_estado['veces']     = 0
+
+            emocion = emocion_estado['actual']
 
         # ── Detectar si es una persona nueva ──
         with lock:
