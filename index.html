@@ -1066,7 +1066,9 @@
         let contadorInterval = null;
         let generoElegido = false;
 
-        // ── Muestra el contador 40s superpuesto con la pregunta ──
+        const DURACION_CONTADOR = 25; // segundos que dura la pregunta en pantalla
+
+        // ── Muestra el contador superpuesto con la pregunta ──
         function mostrarContador(pregunta, emoji) {
             if (!generoElegido) return;
             const wrap = document.getElementById('contador-wrap');
@@ -1077,21 +1079,21 @@
 
             pqEl.textContent = pregunta;
             emEl.textContent = emoji || '🎭';
-            numEl.textContent = '40';
+            numEl.textContent = String(DURACION_CONTADOR);
             barEl.style.transition = 'none';
             barEl.style.width = '100%';
             wrap.classList.add('visible');
 
             if (contadorInterval) clearInterval(contadorInterval);
-            let seg = 40;
+            let seg = DURACION_CONTADOR;
             void barEl.offsetWidth;
             barEl.style.transition = 'width 1s linear';
-            barEl.style.width = ((39/40)*100) + '%';
+            barEl.style.width = (((DURACION_CONTADOR-1)/DURACION_CONTADOR)*100) + '%';
 
             contadorInterval = setInterval(() => {
                 seg--;
                 numEl.textContent = seg;
-                barEl.style.width = ((seg/40)*100) + '%';
+                barEl.style.width = ((seg/DURACION_CONTADOR)*100) + '%';
                 if (seg <= 0) {
                     clearInterval(contadorInterval);
                     contadorInterval = null;
@@ -1123,6 +1125,7 @@
                 '<li style="opacity:.4; font-style:italic;">Esperando tu reacción...</li>';
             document.getElementById('popup-persona').classList.remove('show');
             historialEdad = [];
+            centroPrevio = null;
         }
 
         function mostrarPreguntaBase() {
@@ -1147,14 +1150,14 @@
             clearTimeout(timerFallbackCaptura);
             // 3 segundos de gracia para leer, luego analiza
             timerEsperandoReaccion = setTimeout(() => { esperandoReaccion = false; }, 3000);
-            // Si después de 30s no captó ninguna reacción, captura con 'neutral' de fallback
+            // Al terminar el contador sin reacción, mostrar captura y carta con 'neutral'
             timerFallbackCaptura = setTimeout(() => {
                 if (preguntaActiva && !enBloqueo) {
                     enBloqueo = true;
                     preguntaActiva = false;
                     capturarReaccion('neutral');
                 }
-            }, 30000);
+            }, DURACION_CONTADOR * 1000);
         }
 
         /* Cada pregunta dura 50 segundos antes de cambiar sola si nadie reaccionó */
@@ -1416,6 +1419,7 @@
         //    válida. ──
         let historialCandidatos = [];
         const VENTANA_CONFIRMACION = 2;  // la misma emoción 2 lecturas seguidas
+        let centroPrevio = null; // cara enfocada (para no saltar entre personas)
 
         async function iniciarAnalisis() {
             iniciarCicloPreguntas();
@@ -1437,12 +1441,38 @@
                     return;
                 }
 
-                const d = detecciones[0];
+                // Con varias personas: enfocar UNA sola cara.
+                // Sin cara previa: la más grande (la más cercana a la cámara).
+                // Con cara previa: la más cercana a la del frame anterior (bloqueo),
+                // para no saltar a otra persona que aparezca en el encuadre.
+                const conInfo = detecciones.map(det => {
+                    const b = det.detection.box;
+                    return { det, area: b.width * b.height, cx: b.x + b.width / 2, cy: b.y + b.height / 2 };
+                });
+                let elegida;
+                if (centroPrevio) {
+                    elegida = conInfo.sort((a, b) => {
+                        const da = Math.hypot(a.cx - centroPrevio.x, a.cy - centroPrevio.y);
+                        const db = Math.hypot(b.cx - centroPrevio.x, b.cy - centroPrevio.y);
+                        return da - db;
+                    })[0];
+                } else {
+                    elegida = conInfo.sort((a, b) => b.area - a.area)[0];
+                }
+                centroPrevio = { x: elegida.cx, y: elegida.cy };
+                const d = elegida.det;
 
-                historialEdad.push(d.age);
-                if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
-                const edadPromedio = historialEdad.reduce((a, b) => a + b, 0) / historialEdad.length;
-                const edadEstimada = Math.round(edadPromedio);
+                // Edad: mediana de las lecturas con rostro confiable.
+                // El promedio se desviaba con lecturas locas; la mediana las ignora.
+                const scoreCara = d.detection ? d.detection.score : 1;
+                if (scoreCara >= 0.5) {
+                    historialEdad.push(d.age);
+                    if (historialEdad.length > VENTANA_EDAD) historialEdad.shift();
+                }
+                const edadesOrden = [...historialEdad].sort((a, b) => a - b);
+                const edadEstimada = edadesOrden.length
+                    ? Math.round(edadesOrden[Math.floor(edadesOrden.length / 2)])
+                    : Math.round(d.age);
 
                 // ── Clasificación: se mira la expresión dominante del modelo con un
                 //    umbral PROPIO por emoción (face-api da puntajes altos para happy
@@ -1503,6 +1533,10 @@
 
                 const emocion = confirmada;
                 historialCandidatos = [];
+
+                // Cara neutra (leyendo o sin expresión): no capturar todavía.
+                // El neutral solo se captura al terminar el contador (fallback de 25s).
+                if (emocion === 'neutral') return;
 
                 emocionFijada = emocion;
                 enBloqueo     = true;
